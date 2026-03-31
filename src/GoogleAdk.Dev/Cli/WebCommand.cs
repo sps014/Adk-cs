@@ -5,6 +5,7 @@ using System.CommandLine;
 using GoogleAdk.Dev.Server;
 using GoogleAdk.Core.Sessions;
 using GoogleAdk.Core.Abstractions.Sessions;
+using Microsoft.Extensions.FileProviders;
 
 namespace GoogleAdk.Dev.Cli;
 
@@ -94,11 +95,23 @@ public static class WebCommand
         // Serve dev UI
         if (serveUi)
         {
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
+            var embeddedProvider = new EmbeddedFileProvider(
+                typeof(WebCommand).Assembly, "GoogleAdk.Dev.wwwroot");
+
+            app.UseDefaultFiles(new DefaultFilesOptions
+            {
+                FileProvider = embeddedProvider,
+                RequestPath = "/dev-ui",
+            });
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = embeddedProvider,
+                RequestPath = "/dev-ui",
+                ServeUnknownFileTypes = false,
+            });
 
             // Redirect root to dev UI
-            app.MapGet("/", () => Results.Redirect("/index.html"));
+            app.MapGet("/", () => Results.Redirect("/dev-ui"));
         }
 
         var url = $"http://{host}:{port}";
@@ -110,7 +123,7 @@ public static class WebCommand
         Console.WriteLine("╠══════════════════════════════════════════════════════╣");
         Console.WriteLine($"║  Server:     {url,-39}║");
         if (serveUi)
-            Console.WriteLine($"║  Dev UI:     {url,-39}║");
+            Console.WriteLine($"║  Dev UI:     {url + "/dev-ui",-39}║");
         Console.WriteLine($"║  API:        {url + "/list-apps",-39}║");
         Console.WriteLine($"║  Agents dir: {agentsDir,-39}║");
         Console.WriteLine("╠══════════════════════════════════════════════════════╣");

@@ -29,6 +29,7 @@ using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Agents.Processors;
 using GoogleAdk.Core.Runner;
 using GoogleAdk.Core.Tools;
+using GoogleAdk.Dev;
 using GoogleAdk.Models.Gemini;
 
 var model = GeminiModelFactory.Create("gemini-2.5-flash");
@@ -199,6 +200,14 @@ var coordinator = new LlmAgent(new LlmAgentConfig
 });
 
 var runner = new InMemoryRunner("combined-patterns-sample", coordinator);
+
+// ── Web mode: "dotnet run -- --web" launches the ADK dev UI ────────────────
+if (args.Contains("--web"))
+{
+    AdkWeb.Root = coordinator;
+    await AdkWeb.RunAsync();
+    return;
+}
 
 // Create a persistent session so conversation history is preserved across turns
 var session = await runner.SessionService.CreateSessionAsync(
