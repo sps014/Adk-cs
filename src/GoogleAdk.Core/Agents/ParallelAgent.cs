@@ -24,8 +24,12 @@ public class ParallelAgent : BaseAgent
             RunSubAgentAsync(subAgent, context, channel.Writer, cancellationToken)
         ).ToArray();
 
-        // When all sub-agents complete, close the channel
-        _ = Task.WhenAll(tasks).ContinueWith(_ => channel.Writer.Complete(), cancellationToken);
+        // When all sub-agents complete, close the channel (no cancellationToken — must always close)
+        _ = Task.WhenAll(tasks).ContinueWith(
+            t => channel.Writer.Complete(t.Exception?.InnerException),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 
         await foreach (var evt in channel.Reader.ReadAllAsync(cancellationToken))
         {
