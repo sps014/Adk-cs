@@ -70,6 +70,14 @@ var parallelAnalysis = new ParallelAgent(new BaseAgentConfig
 
 var runner = new InMemoryRunner("parallel-agent-sample", parallelAnalysis);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "parallel-agent-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Parallel Agent Sample                         ║");
 Console.WriteLine("║  Three analysts run simultaneously on your topic.       ║");
@@ -93,7 +101,7 @@ while (true)
     Console.WriteLine();
     var agentOutputs = new Dictionary<string, string>();
 
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
         if (text != null && evt.Partial != true && evt.Author != null)

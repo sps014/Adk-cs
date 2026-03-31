@@ -66,6 +66,14 @@ var refinementLoop = new LoopAgent(new LoopAgentConfig
 
 var runner = new InMemoryRunner("loop-agent-sample", refinementLoop);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "loop-agent-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Loop Agent Sample (Iterative Refinement)      ║");
 Console.WriteLine("║  Give a topic; drafter + critic iterate until polished. ║");
@@ -90,7 +98,7 @@ while (true)
     int iteration = 0;
     string? lastAuthor = null;
 
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
         if (text == null || evt.Partial == true)

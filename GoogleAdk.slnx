@@ -10,6 +10,7 @@
   <Folder Name="/src/">
     <Project Path="src/GoogleAdk.Core.Abstractions/GoogleAdk.Core.Abstractions.csproj" />
     <Project Path="src/GoogleAdk.Core/GoogleAdk.Core.csproj" />
+    <Project Path="src/GoogleAdk.Dev/GoogleAdk.Dev.csproj" />
     <Project Path="src/GoogleAdk.Models.Gemini/GoogleAdk.Models.Gemini.csproj" />
     <Project Path="src/GoogleAdk.Models.Meai/GoogleAdk.Models.Meai.csproj" />
     <Project Path="src/GoogleAdk.Sessions.EfCore/GoogleAdk.Sessions.EfCore.csproj" />

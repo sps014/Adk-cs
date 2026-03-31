@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADK Dev UI</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3345;
+            --text: #e4e6ef;
+            --text-dim: #8b8fa3;
+            --accent: #4285f4;
+            --accent-dim: #3367d6;
+            --green: #34a853;
+            --orange: #fbbc04;
+            --red: #ea4335;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ─────────────────────────────────────────── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        header .logo {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+        header .logo span { color: var(--text-dim); font-weight: 400; }
+        header select, header input, header button {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: var(--font);
+        }
+        header select:focus, header input:focus { outline: 1px solid var(--accent); }
+        header button {
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.15s;
+        }
+        header button:hover { background: var(--accent-dim); }
+        header .spacer { flex: 1; }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--green);
+            display: inline-block;
+        }
+        .status-dot.disconnected { background: var(--red); }
+
+        /* ── Main Layout ────────────────────────────────────── */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ────────────────────────────────────────── */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar h3 {
+            padding: 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+        .sidebar .sessions {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-dim);
+            transition: background 0.1s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .session-item:hover { background: var(--surface2); }
+        .session-item.active { background: var(--surface2); color: var(--text); }
+        .session-item .id { font-family: var(--mono); font-size: 12px; }
+        .session-item .events-count {
+            font-size: 11px;
+            background: var(--border);
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        .sidebar-actions {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .sidebar-actions button {
+            width: 100%;
+            padding: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: var(--font);
+        }
+        .sidebar-actions button:hover { border-color: var(--accent); }
+
+        /* ── Chat Area ──────────────────────────────────────── */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: var(--accent);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.agent {
+            align-self: flex-start;
+            background: var(--surface2);
+            border-bottom-left-radius: 4px;
+        }
+        .message .author {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            opacity: 0.7;
+        }
+        .message.agent .author { color: var(--green); }
+        .message .tool-call {
+            font-size: 12px;
+            color: var(--orange);
+            font-family: var(--mono);
+            padding: 4px 0;
+        }
+        .message .error {
+            color: var(--red);
+        }
+
+        /* ── Event Inspector (right panel) ──────────────────── */
+        .inspector {
+            width: 360px;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .inspector h3 {
+            padding: 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .inspector h3 .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .event-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            font-size: 12px;
+            font-family: var(--mono);
+        }
+        .event-item {
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: background 0.1s;
+            border-left: 3px solid transparent;
+        }
+        .event-item:hover { background: var(--surface2); }
+        .event-item.selected { background: var(--surface2); border-left-color: var(--accent); }
+        .event-item .event-author { color: var(--green); }
+        .event-item .event-type { color: var(--text-dim); }
+        .event-detail {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            overflow-y: auto;
+            max-height: 50%;
+            font-size: 12px;
+            font-family: var(--mono);
+            white-space: pre-wrap;
+            color: var(--text-dim);
+        }
+
+        /* ── Input Bar ──────────────────────────────────────── */
+        .input-bar {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            background: var(--surface);
+        }
+        .input-bar input {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--font);
+        }
+        .input-bar input:focus { outline: 1px solid var(--accent); }
+        .input-bar input::placeholder { color: var(--text-dim); }
+        .input-bar button {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font);
+            transition: background 0.15s;
+        }
+        .input-bar button:hover { background: var(--accent-dim); }
+        .input-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── Empty State ────────────────────────────────────── */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            color: var(--text-dim);
+        }
+        .empty-state .icon { font-size: 48px; opacity: 0.3; }
+        .empty-state p { font-size: 14px; }
+
+        /* ── Scrollbar ──────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        /* ── Loading spinner ────────────────────────────────── */
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--text-dim);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Agent Graph Tab ────────────────────────────────── */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-bar button {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            padding: 10px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-family: var(--font);
+        }
+        .tab-bar button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .graph-container {
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 12px;
+            overflow: auto;
+            flex: 1;
+        }
+        .graph-node {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: var(--surface2);
+            border-left: 3px solid var(--accent);
+        }
+        .graph-node.llm { border-left-color: var(--green); }
+        .graph-node.sequential { border-left-color: var(--orange); }
+        .graph-node.parallel { border-left-color: #9c27b0; }
+        .graph-node.loop { border-left-color: var(--red); }
+        .graph-children { margin-left: 20px; }
+        .graph-tool {
+            font-size: 11px;
+            color: var(--text-dim);
+            padding: 2px 0 2px 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">ADK<span> Dev UI</span></div>
+    <select id="appSelect" title="Select agent app"></select>
+    <input id="userIdInput" type="text" value="user-1" placeholder="User ID" style="width:100px" title="User ID">
+    <div class="spacer"></div>
+    <span class="status-dot" id="statusDot" title="Server status"></span>
+</header>
+
+<div class="main">
+    <!-- Sidebar: Sessions -->
+    <div class="sidebar">
+        <h3>Sessions</h3>
+        <div class="sessions" id="sessionsList"></div>
+        <div class="sidebar-actions">
+            <button onclick="createSession()">+ New Session</button>
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area">
+        <div class="messages" id="messages">
+            <div class="empty-state">
+                <div class="icon">&#x1F916;</div>
+                <p>Select an agent and start a conversation</p>
+            </div>
+        </div>
+        <div class="input-bar">
+            <input type="text" id="messageInput" placeholder="Type a message..."
+                   onkeydown="if(event.key==='Enter')sendMessage()">
+            <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Right Panel: Events / Graph -->
+    <div class="inspector">
+        <div class="tab-bar">
+            <button class="active" onclick="switchTab('events', this)">Events</button>
+            <button onclick="switchTab('graph', this)">Agent Graph</button>
+        </div>
+        <div id="eventsPanel">
+            <div class="event-list" id="eventList"></div>
+            <div class="event-detail" id="eventDetail">Click an event to inspect</div>
+        </div>
+        <div id="graphPanel" style="display:none" class="graph-container"></div>
+    </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let currentApp = '';
+let currentSession = null;
+let allEvents = [];
+let sessions = [];
+
+const API = '';  // Same origin
+
+// ── Init ───────────────────────────────────────────────────────────────
+async function init() {
+    try {
+        const res = await fetch(`${API}/list-apps`);
+        const apps = await res.json();
+        const select = document.getElementById('appSelect');
+        select.innerHTML = '';
+        apps.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a; opt.textContent = a;
+            select.appendChild(opt);
+        });
+        if (apps.length > 0) {
+            currentApp = apps[0];
+            select.value = currentApp;
+            await switchApp(currentApp);
+        }
+        document.getElementById('statusDot').classList.remove('disconnected');
+        select.addEventListener('change', async () => {
+            currentApp = select.value;
+            await switchApp(currentApp);
+        });
+    } catch {
+        document.getElementById('statusDot').classList.add('disconnected');
+    }
+}
+
+// ── Sessions ───────────────────────────────────────────────────────────
+async function switchApp(appName) {
+    currentApp = appName;
+    currentSession = null;
+    allEvents = [];
+    renderMessages();
+    renderEvents();
+    await loadSessions();
+    await loadGraph();
+    // Auto-create a session if none exist
+    if (!currentSession && sessions.length === 0) {
+        await createSession();
+    } else if (!currentSession && sessions.length > 0) {
+        await selectSession(sessions[0].id);
+    }
+}
+
+async function loadSessions() {
+    const userId = document.getElementById('userIdInput').value;
+    try {
+        const res = await fetch(`${API}/apps/${currentApp}/users/${userId}/sessions`);
+        sessions = await res.json();
+    } catch { sessions = []; }
+    renderSessions();
+}
+
+function renderSessions() {
+    const list = document.getElementById('sessionsList');
+    if (sessions.length === 0) {
+        list.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px">No sessions yet</div>';
+        return;
+    }
+    list.innerHTML = sessions.map(s => `
+        <div class="session-item ${currentSession?.id === s.id ? 'active' : ''}"
+             onclick="selectSession('${s.id}')">
+            <span class="id">${s.id.substring(0,8)}...</span>
+            <span class="events-count">${(s.events||[]).length} events</span>
+        </div>
+    `).join('');
+}
+
+async function selectSession(sessionId) {
+    const userId = document.getElementById('userIdInput').value;
+    const res = await fetch(`${API}/apps/${currentApp}/users/${userId}/sessions/${sessionId}`);
+    currentSession = await res.json();
+    allEvents = currentSession.events || [];
+    renderSessions();
+    renderMessages();
+    renderEvents();
+}
+
+async function createSession() {
+    const userId = document.getElementById('userIdInput').value;
+    const res = await fetch(`${API}/apps/${currentApp}/users/${userId}/sessions`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({})
+    });
+    const session = await res.json();
+    await loadSessions();
+    await selectSession(session.id);
+}
+
+// ── Messages ───────────────────────────────────────────────────────────
+function renderMessages() {
+    const container = document.getElementById('messages');
+    if (allEvents.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+            <div class="icon">&#x1F4AC;</div>
+            <p>${currentSession ? 'Send a message to start' : 'Select or create a session'}</p>
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = allEvents.filter(e => {
+        const hasText = e.content?.parts?.some(p => p.text);
+        const hasCalls = e.content?.parts?.some(p => p.functionCall);
+        return hasText || hasCalls;
+    }).map(e => {
+        const isUser = e.author === 'user';
+        const texts = (e.content?.parts || []).filter(p => p.text).map(p => escapeHtml(p.text));
+        const calls = (e.content?.parts || []).filter(p => p.functionCall).map(p =>
+            `<div class="tool-call">⚡ ${p.functionCall.name}(${JSON.stringify(p.functionCall.args || {})})</div>`
+        );
+        return `<div class="message ${isUser ? 'user' : 'agent'}">
+            ${!isUser ? `<div class="author">${escapeHtml(e.author || 'agent')}</div>` : ''}
+            ${calls.join('')}
+            ${texts.join('<br>')}
+        </div>`;
+    }).join('');
+
+    container.scrollTop = container.scrollHeight;
+}
+
+// ── Send Message (SSE) ─────────────────────────────────────────────────
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text || !currentApp) return;
+
+    // Auto-create session if needed
+    if (!currentSession) {
+        await createSession();
+    }
+    if (!currentSession) return;
+
+    input.value = '';
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    // Add user message to display immediately
+    const userEvent = {
+        id: 'local-' + Date.now(),
+        author: 'user',
+        content: { role: 'user', parts: [{ text }] }
+    };
+    allEvents.push(userEvent);
+    renderMessages();
+    renderEvents();
+
+    try {
+        const userId = document.getElementById('userIdInput').value;
+        const res = await fetch(`${API}/run_sse`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                appName: currentApp,
+                userId: userId,
+                sessionId: currentSession.id,
+                message: text,
+                streaming: true
+            })
+        });
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const evt = JSON.parse(line.substring(6));
+                    allEvents.push(evt);
+                    renderMessages();
+                    renderEvents();
+                } catch {}
+            }
+        }
+    } catch (err) {
+        allEvents.push({
+            id: 'error-' + Date.now(),
+            author: 'system',
+            content: { parts: [{ text: `Error: ${err.message}` }] }
+        });
+        renderMessages();
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Send';
+}
+
+// ── Events Inspector ───────────────────────────────────────────────────
+function renderEvents() {
+    const list = document.getElementById('eventList');
+    list.innerHTML = allEvents.map((e, i) => {
+        const hasText = e.content?.parts?.some(p => p.text);
+        const hasCalls = e.content?.parts?.some(p => p.functionCall);
+        const hasResponses = e.content?.parts?.some(p => p.functionResponse);
+        let typeLabel = hasText ? 'text' : '';
+        if (hasCalls) typeLabel = 'fn_call';
+        if (hasResponses) typeLabel = 'fn_response';
+        return `<div class="event-item" onclick="showEventDetail(${i})">
+            <span class="event-author">${escapeHtml(e.author || '?')}</span>
+            <span class="event-type">${typeLabel}</span>
+        </div>`;
+    }).join('');
+}
+
+function showEventDetail(index) {
+    const evt = allEvents[index];
+    document.querySelectorAll('.event-item').forEach((el, i) => {
+        el.classList.toggle('selected', i === index);
+    });
+    document.getElementById('eventDetail').textContent = JSON.stringify(evt, null, 2);
+}
+
+// ── Agent Graph ────────────────────────────────────────────────────────
+async function loadGraph() {
+    if (!currentApp) return;
+    try {
+        const res = await fetch(`${API}/apps/${currentApp}/agent-graph`);
+        const graph = await res.json();
+        document.getElementById('graphPanel').innerHTML = renderGraphNode(graph);
+    } catch {
+        document.getElementById('graphPanel').innerHTML = '<div style="color:var(--text-dim)">Could not load agent graph</div>';
+    }
+}
+
+function renderGraphNode(node) {
+    const typeClass = node.type.toLowerCase().includes('llm') ? 'llm'
+        : node.type.toLowerCase().includes('sequential') ? 'sequential'
+        : node.type.toLowerCase().includes('parallel') ? 'parallel'
+        : node.type.toLowerCase().includes('loop') ? 'loop' : '';
+
+    let html = `<div class="graph-node ${typeClass}">
+        <strong>${escapeHtml(node.name)}</strong>
+        <span style="color:var(--text-dim);font-size:11px"> (${node.type})</span>
+        ${node.description ? `<div style="font-size:11px;color:var(--text-dim)">${escapeHtml(node.description)}</div>` : ''}
+    </div>`;
+
+    if (node.tools?.length > 0) {
+        html += node.tools.map(t =>
+            `<div class="graph-tool">🔧 ${escapeHtml(t.name)}</div>`
+        ).join('');
+    }
+
+    if (node.children?.length > 0) {
+        html += `<div class="graph-children">${node.children.map(renderGraphNode).join('')}</div>`;
+    }
+    return html;
+}
+
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('eventsPanel').style.display = tab === 'events' ? '' : 'none';
+    document.getElementById('graphPanel').style.display = tab === 'graph' ? '' : 'none';
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Start ──────────────────────────────────────────────────────────────
+init();
+</script>
+
+</body>
+</html>

@@ -90,6 +90,14 @@ var receptionist = new LlmAgent(new LlmAgentConfig
 
 var runner = new InMemoryRunner("sub-agent-transfer-sample", receptionist);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "sub-agent-transfer-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Sub-Agent Transfer Sample                     ║");
 Console.WriteLine("║  Chat with the receptionist — it routes to specialists. ║");
@@ -112,7 +120,7 @@ while (true)
     };
 
     Console.WriteLine();
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
         if (text != null && evt.Partial != true)

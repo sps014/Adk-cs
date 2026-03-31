@@ -200,6 +200,14 @@ var coordinator = new LlmAgent(new LlmAgentConfig
 
 var runner = new InMemoryRunner("combined-patterns-sample", coordinator);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "combined-patterns-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Combined Patterns: Product Launch Advisor     ║");
 Console.WriteLine("║                                                          ║");
@@ -228,7 +236,7 @@ while (true)
     Console.WriteLine();
     var sw = System.Diagnostics.Stopwatch.StartNew();
 
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
 

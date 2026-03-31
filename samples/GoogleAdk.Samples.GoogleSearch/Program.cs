@@ -40,6 +40,14 @@ var searchAgent = new LlmAgent(new LlmAgentConfig
 
 var runner = new InMemoryRunner("google-search-sample", searchAgent);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "google-search-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Google Search Grounding Sample                ║");
 Console.WriteLine("║  Ask anything! The agent has real-time web access.      ║");
@@ -61,7 +69,7 @@ while (true)
     };
 
     Console.WriteLine();
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
         if (text != null && evt.Partial != true)

@@ -145,6 +145,14 @@ var rootAgent = new LlmAgent(new LlmAgentConfig
 
 var runner = new InMemoryRunner("orchestration-sample", rootAgent);
 
+// Create a persistent session so conversation history is preserved across turns
+var session = await runner.SessionService.CreateSessionAsync(
+    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+    {
+        AppName = "orchestration-sample",
+        UserId = "user-1",
+    });
+
 Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
 Console.WriteLine("║  ADK C# — Multi-Agent Orchestration Sample              ║");
 Console.WriteLine("║  Type a question or 'quit' to exit.                     ║");
@@ -168,7 +176,7 @@ while (true)
     Console.WriteLine();
     var eventCount = 0;
 
-    await foreach (var evt in runner.RunEphemeralAsync("user-1", userMessage))
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
     {
         eventCount++;
 
