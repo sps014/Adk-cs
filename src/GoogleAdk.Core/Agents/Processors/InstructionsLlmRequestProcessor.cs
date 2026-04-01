@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using GoogleAdk.Core.Abstractions.Events;
+using GoogleAdk.Core.Examples;
 
 namespace GoogleAdk.Core.Agents.Processors;
 
@@ -41,6 +42,16 @@ public class InstructionsLlmRequestProcessor : BaseLlmRequestProcessor
             if (localRequiresInjection)
                 localInstruction = await InstructionInjector.InjectSessionStateAsync(localInstruction, readonlyContext);
             llmRequest.AppendInstructions(localInstruction);
+        }
+
+        if (agent.ExampleProvider != null || agent.Examples.Count > 0)
+        {
+            var query = invocationContext.UserContent?.Parts?.FirstOrDefault()?.Text ?? string.Empty;
+            var examplesText = agent.ExampleProvider != null
+                ? ExampleUtil.BuildExampleSystemInstruction(agent.ExampleProvider, query, llmRequest.Model)
+                : ExampleUtil.BuildExampleSystemInstruction(agent.Examples, llmRequest.Model);
+            if (!string.IsNullOrWhiteSpace(examplesText))
+                llmRequest.AppendInstructions(examplesText);
         }
     }
 }

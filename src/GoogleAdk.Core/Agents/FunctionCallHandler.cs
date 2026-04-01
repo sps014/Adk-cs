@@ -64,13 +64,18 @@ public static class FunctionCallHandler
         Event functionCallEvent,
         Dictionary<string, IBaseTool> toolsDict,
         IReadOnlyList<BeforeToolCallback> beforeToolCallbacks,
-        IReadOnlyList<AfterToolCallback> afterToolCallbacks)
+        IReadOnlyList<AfterToolCallback> afterToolCallbacks,
+        Dictionary<string, Abstractions.Tools.ToolConfirmation>? toolConfirmations = null,
+        HashSet<string>? filterFunctionCallIds = null)
     {
         var functionCalls = functionCallEvent.GetFunctionCalls();
         var responseEvents = new List<Event>();
 
         foreach (var functionCall in functionCalls)
         {
+            if (filterFunctionCallIds != null && functionCall.Id != null && !filterFunctionCallIds.Contains(functionCall.Id))
+                continue;
+
             if (functionCall.Name == null || !toolsDict.TryGetValue(functionCall.Name, out var toolRef))
             {
                 responseEvents.Add(BuildErrorResponseEvent(
@@ -88,6 +93,11 @@ public static class FunctionCallHandler
 
             var args = functionCall.Args ?? new Dictionary<string, object?>();
             var toolContext = new AgentContext(invocationContext, functionCallId: functionCall.Id);
+            if (toolConfirmations != null && functionCall.Id != null &&
+                toolConfirmations.TryGetValue(functionCall.Id, out var confirmation))
+            {
+                toolContext.EventActions.RequestedToolConfirmations[functionCall.Id] = confirmation;
+            }
 
             // Step 1: Plugin before_tool_callback
             Dictionary<string, object?>? functionResponse = null;

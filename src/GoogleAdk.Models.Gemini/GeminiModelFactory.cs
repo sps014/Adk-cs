@@ -21,6 +21,14 @@ namespace GoogleAdk.Models.Gemini;
 public static class GeminiModelFactory
 {
     /// <summary>
+    /// Registers Gemini model patterns with the LLM registry.
+    /// </summary>
+    public static void RegisterDefaults()
+    {
+        LlmRegistry.Register(Create, new[] { "gemini-.*" });
+    }
+
+    /// <summary>
     /// Creates a Gemini <see cref="BaseLlm"/> from environment variables.
     /// </summary>
     /// <param name="model">The model name, e.g. "gemini-2.5-flash" or "gemini-2.0-flash".</param>

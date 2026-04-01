@@ -12,15 +12,15 @@ namespace GoogleAdk.Tools.Mcp;
 public sealed class McpTool : Core.BaseTool
 {
     private readonly McpClientTool _mcpTool;
-    private readonly IMcpClient _client;
+    private readonly McpSessionManager _sessionManager;
 
-    internal McpTool(McpClientTool mcpTool, IMcpClient client, string? prefix = null)
+    internal McpTool(McpClientTool mcpTool, McpSessionManager sessionManager, string? prefix = null)
         : base(
             prefix != null ? $"{prefix}_{mcpTool.Name}" : mcpTool.Name,
             mcpTool.Description ?? string.Empty)
     {
         _mcpTool = mcpTool;
-        _client = client;
+        _sessionManager = sessionManager;
     }
 
     public override FunctionDeclaration? GetDeclaration()
@@ -35,7 +35,8 @@ public sealed class McpTool : Core.BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var result = await _client.CallToolAsync(_mcpTool.Name, args);
+        await using var client = await _sessionManager.CreateSessionAsync();
+        var result = await client.CallToolAsync(_mcpTool.Name, args);
         // Return text content from the result
         var textParts = result.Content
             .OfType<TextContentBlock>()

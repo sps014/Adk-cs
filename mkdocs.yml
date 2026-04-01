@@ -1,0 +1,14 @@
+site_name: ADK for .NET
+site_url: https://example.com/adk-dotnet
+nav:
+  - Home: docs/index.md
+  - Getting Started: docs/getting-started.md
+  - Features: docs/features.md
+  - A2A: docs/a2a.md
+  - Tools: docs/tools.md
+  - Artifacts: docs/artifacts.md
+  - Models: docs/models.md
+  - MCP: docs/mcp.md
+  - Testing: docs/testing.md
+theme:
+  name: material

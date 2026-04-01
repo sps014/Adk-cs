@@ -1,7 +1,9 @@
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Agents.Processors;
+using GoogleAdk.Core.CodeExecutors;
 using GoogleAdk.Core.Context;
+using GoogleAdk.Core.Examples;
 using GoogleAdk.Core.Tools;
 using System.Runtime.CompilerServices;
 
@@ -67,6 +69,15 @@ public class LlmAgentConfig : BaseAgentConfig
     /// <summary>Tools available to this agent.</summary>
     public List<IBaseTool>? Tools { get; set; }
 
+    /// <summary>Optional code executor for code execution workflows.</summary>
+    public BaseCodeExecutor? CodeExecutor { get; set; }
+
+    /// <summary>Few-shot examples to include in system instruction.</summary>
+    public List<Example>? Examples { get; set; }
+
+    /// <summary>Dynamic example provider for query-dependent few-shot examples.</summary>
+    public BaseExampleProvider? ExampleProvider { get; set; }
+
     /// <summary>Generate content configuration.</summary>
     public GenerateContentConfig? GenerateContentConfig { get; set; }
 
@@ -127,6 +138,9 @@ public class LlmAgent : BaseAgent
     public string? GlobalInstruction { get; set; }
     public InstructionProvider? GlobalInstructionProviderFunc { get; set; }
     public List<IBaseTool> Tools { get; }
+    public BaseCodeExecutor? CodeExecutor { get; }
+    public List<Example> Examples { get; }
+    public BaseExampleProvider? ExampleProvider { get; }
     public GenerateContentConfig? GenerateContentConfig { get; set; }
     public List<BeforeModelCallback> BeforeModelCallbacks { get; }
     public List<AfterModelCallback> AfterModelCallbacks { get; }
@@ -150,6 +164,9 @@ public class LlmAgent : BaseAgent
         GlobalInstruction = config.GlobalInstruction;
         GlobalInstructionProviderFunc = config.GlobalInstructionProvider;
         Tools = config.Tools ?? new List<IBaseTool>();
+        CodeExecutor = config.CodeExecutor;
+        Examples = config.Examples ?? new List<Example>();
+        ExampleProvider = config.ExampleProvider;
         GenerateContentConfig = config.GenerateContentConfig;
         BeforeModelCallbacks = config.BeforeModelCallbacks ?? new();
         AfterModelCallbacks = config.AfterModelCallbacks ?? new();
@@ -168,7 +185,9 @@ public class LlmAgent : BaseAgent
             BasicLlmRequestProcessor.Instance,
             IdentityLlmRequestProcessor.Instance,
             InstructionsLlmRequestProcessor.Instance,
+            RequestConfirmationLlmRequestProcessor.Instance,
             ContentRequestProcessor.Instance,
+            CodeExecutionRequestProcessor.Instance,
         };
 
         // Insert context compactor before content processor when using defaults
@@ -216,12 +235,16 @@ public class LlmAgent : BaseAgent
         {
             if (Model != null)
                 return Model;
+            if (!string.IsNullOrWhiteSpace(ModelName))
+                return LlmRegistry.NewLlm(ModelName);
 
             var ancestor = ParentAgent;
             while (ancestor != null)
             {
                 if (ancestor is LlmAgent llmAncestor && llmAncestor.Model != null)
                     return llmAncestor.CanonicalModel;
+                if (ancestor is LlmAgent llmWithName && !string.IsNullOrWhiteSpace(llmWithName.ModelName))
+                    return LlmRegistry.NewLlm(llmWithName.ModelName);
                 ancestor = ancestor.ParentAgent;
             }
 

@@ -80,7 +80,7 @@ public class AgentTool : BaseTool
             AppName = _agent.Name,
             Agent = _agent,
             SessionService = context.InvocationContext.SessionService!,
-            ArtifactService = context.InvocationContext.ArtifactService,
+            ArtifactService = new ForwardingArtifactService(context),
             MemoryService = context.InvocationContext.MemoryService,
         });
 

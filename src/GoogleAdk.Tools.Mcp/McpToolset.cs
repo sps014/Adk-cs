@@ -36,25 +36,24 @@ namespace GoogleAdk.Tools.Mcp;
 /// </example>
 public sealed class McpToolset : BaseToolset
 {
-    private readonly McpConnectionParams _connectionParams;
-    private IMcpClient? _client;
+    private readonly McpSessionManager _sessionManager;
 
     public McpToolset(McpConnectionParams connectionParams, string? prefix = null)
         : base(prefix: prefix)
     {
-        _connectionParams = connectionParams;
+        _sessionManager = new McpSessionManager(connectionParams);
     }
 
     public McpToolset(McpConnectionParams connectionParams, IReadOnlyList<string> toolFilterNames, string? prefix = null)
         : base(toolFilterNames, prefix)
     {
-        _connectionParams = connectionParams;
+        _sessionManager = new McpSessionManager(connectionParams);
     }
 
     public McpToolset(McpConnectionParams connectionParams, ToolPredicate toolFilter, string? prefix = null)
         : base(toolFilter, prefix)
     {
-        _connectionParams = connectionParams;
+        _sessionManager = new McpSessionManager(connectionParams);
     }
 
     /// <summary>
@@ -62,13 +61,13 @@ public sealed class McpToolset : BaseToolset
     /// </summary>
     public override async Task<IReadOnlyList<BaseTool>> GetToolsAsync(AgentContext? context = null)
     {
-        var client = await GetOrCreateClientAsync();
+        await using var client = await _sessionManager.CreateSessionAsync();
         var mcpTools = await client.ListToolsAsync();
 
         var tools = new List<BaseTool>();
         foreach (var mcpTool in mcpTools)
         {
-            var wrapped = new McpTool(mcpTool, client, Prefix);
+            var wrapped = new McpTool(mcpTool, _sessionManager, Prefix);
 
             // Apply filters
             if (ToolFilterNames != null && !ToolFilterNames.Contains(mcpTool.Name))
@@ -84,37 +83,6 @@ public sealed class McpToolset : BaseToolset
 
     public override async ValueTask DisposeAsync()
     {
-        if (_client != null)
-        {
-            await _client.DisposeAsync();
-            _client = null;
-        }
-    }
-
-    private async Task<IMcpClient> GetOrCreateClientAsync()
-    {
-        if (_client != null)
-            return _client;
-
-        IClientTransport transport = _connectionParams switch
-        {
-            StdioConnectionParams stdio => new StdioClientTransport(new StdioClientTransportOptions
-            {
-                Name = "AdkMcpClient",
-                Command = stdio.Command,
-                Arguments = stdio.Arguments?.ToList(),
-                EnvironmentVariables = stdio.EnvironmentVariables?.ToDictionary(kv => kv.Key, kv => (string?)kv.Value),
-                WorkingDirectory = stdio.WorkingDirectory,
-            }),
-            HttpConnectionParams http => new SseClientTransport(new SseClientTransportOptions
-            {
-                Endpoint = new Uri(http.Url),
-                Name = "AdkMcpClient",
-            }),
-            _ => throw new NotSupportedException($"Unsupported connection params type: {_connectionParams.GetType().Name}")
-        };
-
-        _client = await McpClientFactory.CreateAsync(transport);
-        return _client;
+        await Task.CompletedTask;
     }
 }
