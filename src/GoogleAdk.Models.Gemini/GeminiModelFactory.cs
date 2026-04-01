@@ -2,6 +2,7 @@ using GenerativeAI;
 using GenerativeAI.Microsoft;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Models.Meai;
+using System.Threading;
 
 namespace GoogleAdk.Models.Gemini;
 
@@ -20,11 +21,17 @@ namespace GoogleAdk.Models.Gemini;
 /// </remarks>
 public static class GeminiModelFactory
 {
+    private static int _defaultsRegistered;
+
     /// <summary>
     /// Registers Gemini model patterns with the LLM registry.
     /// </summary>
     public static void RegisterDefaults()
     {
+        if (Interlocked.Exchange(ref _defaultsRegistered, 1) == 1)
+        {
+            return;
+        }
         LlmRegistry.Register(Create, new[] { "gemini-.*" });
     }
 

@@ -155,6 +155,7 @@ public static class WebCommand
         Console.WriteLine("Press Ctrl+C to stop.");
         Console.WriteLine();
 
-        await app.RunAsync();
+        var shutdownToken = DevServerLifetime.Register(app);
+        await app.RunAsync(shutdownToken);
     }
 }

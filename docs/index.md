@@ -23,10 +23,7 @@ using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Runner;
 using GoogleAdk.Models.Gemini;
 
-// 1. Register model defaults
-GeminiModelFactory.RegisterDefaults();
-
-// 2. Configure the agent
+// 1. Configure the agent
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "hello_agent",

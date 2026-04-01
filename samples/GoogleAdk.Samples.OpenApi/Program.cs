@@ -70,7 +70,6 @@ else
 }
 
 // You can also use it with an Agent!
-GeminiModelFactory.RegisterDefaults();
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "openapi_agent",

@@ -34,8 +34,6 @@ Processors allow you to hook into the LLM request/response lifecycle. The ADK in
 You can override the default processors if you need a specialized pipeline:
 
 ```csharp
-GeminiModelFactory.RegisterDefaults();
-
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "custom_pipeline_agent",

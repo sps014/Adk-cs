@@ -43,7 +43,6 @@ public static class LlmRegistry
                 return entry.Factory;
             }
         }
-
         throw new InvalidOperationException($"No LLM registered for model \"{model}\".");
     }
 

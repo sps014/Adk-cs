@@ -30,7 +30,7 @@ public static class AdkWeb
     /// <summary>
     /// Starts the ADK dev server with the UI, serving <see cref="Root"/>.
     /// </summary>
-    public static Task RunAsync(int port = 8080, string host = "localhost", bool serveUi = true, bool enableA2a = false)
+    public static async Task RunAsync(int port = 8080, string host = "localhost", bool serveUi = true, bool enableA2a = false)
     {
         var agent = Root; // will throw if not set
         var agentLoader = new AgentLoader(".");
@@ -88,6 +88,7 @@ public static class AdkWeb
         Console.WriteLine($"  Press Ctrl+C to stop.");
         Console.WriteLine();
 
-        return app.RunAsync();
+        var shutdownToken = DevServerLifetime.Register(app);
+        await app.RunAsync(shutdownToken);
     }
 }

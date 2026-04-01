@@ -19,7 +19,6 @@ var dataStoreId = $"projects/{projectId}/locations/{location}/collections/defaul
 // For this demo, we'll configure the agent and tool to show how it's done.
 var vertexSearchTool = new VertexAiSearchTool(dataStoreId: dataStoreId);
 
-GeminiModelFactory.RegisterDefaults();
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "search_agent",

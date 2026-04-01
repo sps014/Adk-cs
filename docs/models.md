@@ -28,9 +28,6 @@ var agent = new LlmAgent(new LlmAgentConfig
 For more flexible configurations, register the defaults and use `ModelName`:
 
 ```csharp
-// 1. Register default Gemini patterns (e.g., "gemini-.*")
-GeminiModelFactory.RegisterDefaults();
-
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "registry_agent",
