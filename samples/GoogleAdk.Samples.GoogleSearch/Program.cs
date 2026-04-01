@@ -76,7 +76,17 @@ while (true)
         }
 
         if (evt.GroundingMetadata != null)
-            Console.WriteLine("  📎 Response grounded with Google Search");
+        {
+            Console.WriteLine("  [Grounding Metadata]");
+            if (evt.GroundingMetadata.WebSearchQueries != null && evt.GroundingMetadata.WebSearchQueries.Count > 0)
+            {
+                Console.WriteLine($"    Search Queries: {string.Join(", ", evt.GroundingMetadata.WebSearchQueries)}");
+            }
+            if (evt.GroundingMetadata.SearchEntryPoint != null)
+            {
+                Console.WriteLine($"    Search Entry Point Data Keys: {string.Join(", ", evt.GroundingMetadata.SearchEntryPoint.Keys)}");
+            }
+        }
     }
     Console.WriteLine(new string('─', 60));
 }

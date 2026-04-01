@@ -56,4 +56,7 @@ public class LlmResponse
 
     /// <summary>Audio transcription of model output.</summary>
     public Transcription? OutputTranscription { get; set; }
+
+    /// <summary>The raw representation of the response from the underlying provider.</summary>
+    public object? RawRepresentation { get; set; }
 }

@@ -153,6 +153,48 @@ public class ToolDeclaration
 
     [JsonPropertyName("googleSearchRetrieval")]
     public Dictionary<string, object?>? GoogleSearchRetrieval { get; set; }
+
+    [JsonPropertyName("retrieval")]
+    public RetrievalConfig? Retrieval { get; set; }
+}
+
+/// <summary>
+/// Configuration for retrieval tools (like Vertex AI Search).
+/// </summary>
+public class RetrievalConfig
+{
+    [JsonPropertyName("vertexAiSearch")]
+    public VertexAiSearchConfig? VertexAiSearch { get; set; }
+}
+
+/// <summary>
+/// Configuration for Vertex AI Search retrieval.
+/// </summary>
+public class VertexAiSearchConfig
+{
+    [JsonPropertyName("datastore")]
+    public string? Datastore { get; set; }
+
+    [JsonPropertyName("engine")]
+    public string? Engine { get; set; }
+
+    [JsonPropertyName("filter")]
+    public string? Filter { get; set; }
+
+    [JsonPropertyName("maxResults")]
+    public int? MaxResults { get; set; }
+
+    [JsonPropertyName("dataStoreSpecs")]
+    public List<VertexAiSearchDataStoreSpec>? DataStoreSpecs { get; set; }
+}
+
+/// <summary>
+/// A data store specification for Vertex AI Search.
+/// </summary>
+public class VertexAiSearchDataStoreSpec
+{
+    [JsonPropertyName("dataStore")]
+    public string? DataStore { get; set; }
 }
 
 /// <summary>
@@ -216,6 +258,12 @@ public class GroundingMetadata
 
     [JsonPropertyName("searchEntryPoint")]
     public Dictionary<string, object?>? SearchEntryPoint { get; set; }
+
+    [JsonPropertyName("groundingChunks")]
+    public List<Dictionary<string, object?>>? GroundingChunks { get; set; }
+
+    [JsonPropertyName("groundingSupports")]
+    public List<Dictionary<string, object?>>? GroundingSupports { get; set; }
 }
 
 /// <summary>

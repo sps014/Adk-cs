@@ -181,8 +181,8 @@ public static class AdkApiEndpoints
         app.MapGet("/debug/trace/{eventId}", (string eventId, InMemoryTraceCollector traces) =>
         {
             var trace = traces.GetTraceByEventId(eventId);
-            // Return empty object instead of 404 so the UI doesn't crash
-            return Results.Json(trace ?? new Dictionary<string, object?>(), s_jsonOptions);
+            if (trace == null) return Results.NotFound("Trace not found");
+            return Results.Json(trace, s_jsonOptions);
         });
 
         // ── Debug Trace (per session) ──────────────────────────────────────

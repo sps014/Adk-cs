@@ -14,6 +14,8 @@
     <Project Path="samples/GoogleAdk.Samples.Artifacts/GoogleAdk.Samples.Artifacts.csproj" />
     <Project Path="samples/GoogleAdk.Samples.CodeExecutors/GoogleAdk.Samples.CodeExecutors.csproj" />
     <Project Path="samples/GoogleAdk.Samples.Events/GoogleAdk.Samples.Events.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.VertexAiSearch/GoogleAdk.Samples.VertexAiSearch.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.Ollama/GoogleAdk.Samples.Ollama.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/GoogleAdk.Core.Abstractions/GoogleAdk.Core.Abstractions.csproj" />

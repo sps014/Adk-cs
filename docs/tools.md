@@ -3,6 +3,7 @@
 ## Built-in Tools
 
 - GoogleSearchTool
+- VertexAiSearchTool (Vertex AI Search / Discovery Engine)
 - LoadMemoryTool
 - LoadArtifactsTool
 - AuthTool (credential requests)
@@ -110,6 +111,31 @@ var agent = new LlmAgent(new LlmAgentConfig
     ModelName = "gemini-2.5-flash",
     Tools = [new GoogleSearchTool()]
 });
+
+// Grounding metadata is returned in the event stream:
+// foreach (var evt in runner.RunAsync(...)) {
+//     if (evt.GroundingMetadata != null) {
+//         var queries = evt.GroundingMetadata.WebSearchQueries;
+//     }
+// }
+```
+
+### Example: VertexAiSearchTool
+
+```csharp
+var searchTool = new VertexAiSearchTool(
+    dataStoreId: "projects/YOUR_PROJECT/locations/global/collections/default_collection/dataStores/YOUR_DATASTORE"
+);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "discovery_agent",
+    ModelName = "gemini-2.5-flash",
+    Tools = [searchTool]
+});
+
+// Grounding metadata is also available in the event stream:
+// evt.GroundingMetadata?.SearchEntryPoint?.Keys;
 ```
 
 ### Example: AuthTool

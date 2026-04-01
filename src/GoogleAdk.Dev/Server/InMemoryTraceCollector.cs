@@ -41,7 +41,9 @@ public sealed class InMemoryTraceCollector : IDisposable
         {
             var attributes = new Dictionary<string, object?>();
             foreach (var tag in activity.Tags)
+            {
                 attributes[tag.Key] = tag.Value;
+            }
 
             // Add span/trace IDs into the attributes dict (matches JS format)
             attributes["trace_id"] = activity.TraceId.ToString();

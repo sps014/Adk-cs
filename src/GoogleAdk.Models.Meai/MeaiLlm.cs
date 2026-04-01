@@ -38,9 +38,14 @@ public class MeaiLlm : BaseLlm
         if (stream)
         {
             var textBuffer = string.Empty;
+            var parts = new List<Part>();
+            object? lastRaw = null;
+
             await foreach (var update in _chatClient.GetStreamingResponseAsync(
                 messages, options, cancellationToken))
             {
+                lastRaw = update.RawRepresentation ?? lastRaw;
+
                 if (update.Text != null)
                 {
                     textBuffer += update.Text;
@@ -52,6 +57,7 @@ public class MeaiLlm : BaseLlm
                             Parts = new List<Part> { new Part { Text = update.Text } }
                         },
                         Partial = true,
+                        RawRepresentation = update.RawRepresentation,
                     };
                 }
 
@@ -62,29 +68,52 @@ public class MeaiLlm : BaseLlm
                     {
                         if (content is FunctionCallContent functionCall)
                         {
+                            var fcPart = new Part
+                            {
+                                FunctionCall = new FunctionCall
+                                {
+                                    Name = functionCall.Name,
+                                    Args = ConvertArgsToDictionary(functionCall.Arguments),
+                                    Id = functionCall.CallId,
+                                }
+                            };
+                            parts.Add(fcPart);
                             yield return new LlmResponse
                             {
                                 Content = new Content
                                 {
                                     Role = "model",
-                                    Parts = new List<Part>
-                                    {
-                                        new Part
-                                        {
-                                            FunctionCall = new FunctionCall
-                                            {
-                                                Name = functionCall.Name,
-                                                Args = ConvertArgsToDictionary(functionCall.Arguments),
-                                                Id = functionCall.CallId,
-                                            }
-                                        }
-                                    }
+                                    Parts = new List<Part> { fcPart }
                                 },
                                 TurnComplete = true,
+                                RawRepresentation = update.RawRepresentation,
                             };
                         }
                     }
                 }
+            }
+
+            // Yield a final response with the full text and metadata
+            if (parts.Count == 0 && textBuffer.Length > 0)
+            {
+                parts.Add(new Part { Text = textBuffer });
+            }
+
+            // Always yield a final event if the stream produced any parts or if there's raw representation
+            if (parts.Count > 0 || lastRaw != null)
+            {
+                var finalResponse = new LlmResponse
+                {
+                    Content = new Content
+                    {
+                        Role = "model",
+                        Parts = parts
+                    },
+                    TurnComplete = true,
+                    RawRepresentation = lastRaw,
+                };
+                
+                yield return finalResponse;
             }
         }
         else
@@ -277,6 +306,7 @@ public class MeaiLlm : BaseLlm
                 Parts = parts
             },
             TurnComplete = true,
+            RawRepresentation = response.RawRepresentation,
         };
 
         // Map usage

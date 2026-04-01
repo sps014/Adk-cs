@@ -72,7 +72,7 @@ public static class GeminiModelFactory
     {
         var platform = new VertextPlatformAdapter(projectId, location);
         var chatClient = new GenerativeAIChatClient(platform, model, autoCallFunction: false);
-        return new MeaiLlm(model, chatClient);
+        return new GeminiLlm(model, chatClient);
     }
 
     /// <summary>
@@ -84,6 +84,6 @@ public static class GeminiModelFactory
     public static BaseLlm CreateGoogleAi(string model, string apiKey)
     {
         var chatClient = new GenerativeAIChatClient(apiKey, model, autoCallFunction: false);
-        return new MeaiLlm(model, chatClient);
+        return new GeminiLlm(model, chatClient);
     }
 }

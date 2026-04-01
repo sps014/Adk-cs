@@ -362,12 +362,15 @@ public class LlmAgent : BaseAgent
             // === Postprocess: response processors + function calls ===
             await foreach (var evt in PostprocessAsync(invocationContext, llmRequest, llmResponse, modelResponseEvent, cancellationToken))
             {
-                modelResponseEvent = Event.Create(e =>
+                if (evt.Partial != true)
                 {
-                    e.InvocationId = invocationContext.InvocationId;
-                    e.Author = Name;
-                    e.Branch = invocationContext.Branch;
-                });
+                    modelResponseEvent = Event.Create(e =>
+                    {
+                        e.InvocationId = invocationContext.InvocationId;
+                        e.Author = Name;
+                        e.Branch = invocationContext.Branch;
+                    });
+                }
                 yield return evt;
             }
         }
@@ -394,6 +397,7 @@ public class LlmAgent : BaseAgent
         // Build merged event
         var mergedEvent = Event.Create(e =>
         {
+            e.Id = modelResponseEvent.Id;
             e.InvocationId = modelResponseEvent.InvocationId;
             e.Author = modelResponseEvent.Author;
             e.Branch = modelResponseEvent.Branch;
@@ -493,8 +497,9 @@ public class LlmAgent : BaseAgent
         var llm = CanonicalModel;
         invocationContext.IncrementLlmCallCount();
 
+        var stream = invocationContext.RunConfig?.StreamingMode == StreamingMode.Sse;
         using var llmSpan = Telemetry.AdkTracing.StartSpan("call_llm");
-        await foreach (var llmResponse in llm.GenerateContentAsync(llmRequest).WithCancellation(cancellationToken))
+        await foreach (var llmResponse in llm.GenerateContentAsync(llmRequest, stream).WithCancellation(cancellationToken))
         {
             Telemetry.AdkTracing.TraceCallLlm(invocationContext, modelResponseEvent.Id, llmRequest, llmResponse);
             // Plugin after model → canonical after model

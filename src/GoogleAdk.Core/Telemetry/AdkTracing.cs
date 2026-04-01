@@ -89,7 +89,7 @@ public static class AdkTracing
         activity.SetTag(GenAiToolName, "(merged tools)");
         activity.SetTag(GenAiToolDescription, "(merged tools)");
         activity.SetTag(GenAiToolCallId, responseEventId);
-        activity.SetTag("gcp.vertex.agent.tool_call_args", "N/A");
+        activity.SetTag("gcp.vertex.agent.tool_call_args", "{}");
         activity.SetTag("gcp.vertex.agent.event_id", responseEventId);
         activity.SetTag("gcp.vertex.agent.llm_request", "{}");
         activity.SetTag("gcp.vertex.agent.llm_response", "{}");
@@ -131,11 +131,17 @@ public static class AdkTracing
         return !string.Equals(envVar, "false", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
     private static string SafeJsonSerialize(object? obj)
     {
         try
         {
-            return JsonSerializer.Serialize(obj);
+            return JsonSerializer.Serialize(obj, s_jsonOptions);
         }
         catch
         {
