@@ -1,10 +1,12 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using System.Text.Json;
 using GoogleAdk.Core.A2a;
 using GoogleAdk.Core.Runner;
 using Microsoft.AspNetCore.Mvc;
+using A2aTask = GoogleAdk.Core.A2a.A2aTask;
+using A2aTaskStatus = GoogleAdk.Core.A2a.TaskStatus;
+using RunConfig = GoogleAdk.Core.Agents.RunConfig;
+using StreamingMode = GoogleAdk.Core.Agents.StreamingMode;
+using Task = System.Threading.Tasks.Task;
 
 namespace GoogleAdk.Dev.Server;
 
@@ -133,9 +135,9 @@ public static class A2aApiEndpoints
         var executor = new A2aAgentExecutor(new AgentExecutorConfig
         {
             Runner = new RunnerOrRunnerConfig { Runner = runner },
-            RunConfig = new GoogleAdk.Core.Agents.RunConfig
+            RunConfig = new RunConfig
             {
-                StreamingMode = GoogleAdk.Core.Agents.StreamingMode.Sse,
+                StreamingMode = StreamingMode.Sse,
             },
         });
 
@@ -174,7 +176,7 @@ public static class A2aApiEndpoints
         return new RestSendResponse { Task = task };
     }
 
-    private static async global::System.Threading.Tasks.Task<GoogleAdk.Core.A2a.Task> ExecuteA2aTaskAsync(
+    private static async Task<A2aTask> ExecuteA2aTaskAsync(
         string appName,
         MessageSendParams request,
         AgentLoader loader,
@@ -187,7 +189,7 @@ public static class A2aApiEndpoints
         return BuildTaskFromEvents(request, events);
     }
 
-    private static GoogleAdk.Core.A2a.Task BuildTaskFromEvents(MessageSendParams request, List<IA2aEvent> events)
+    private static A2aTask BuildTaskFromEvents(MessageSendParams request, List<IA2aEvent> events)
     {
         var taskId = request.Message.TaskId ?? Guid.NewGuid().ToString();
         var contextId = request.Message.ContextId ?? Guid.NewGuid().ToString();
@@ -214,11 +216,11 @@ public static class A2aApiEndpoints
             }
         }
 
-        return new GoogleAdk.Core.A2a.Task
+        return new A2aTask
         {
             Id = taskId,
             ContextId = contextId,
-            Status = finalStatus?.Status ?? new GoogleAdk.Core.A2a.TaskStatus { State = TaskState.Completed },
+            Status = finalStatus?.Status ?? new A2aTaskStatus { State = TaskState.Completed },
             Artifacts = artifacts.Values.ToList(),
             History = new List<Message> { request.Message },
             Metadata = finalStatus?.Metadata,

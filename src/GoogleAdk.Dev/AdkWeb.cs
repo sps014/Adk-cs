@@ -1,6 +1,3 @@
-// Copyright 2025 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.Sessions;

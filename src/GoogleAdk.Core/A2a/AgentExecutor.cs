@@ -1,11 +1,10 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Runner;
+using RunnerType = GoogleAdk.Core.Runner.Runner;
+using Task = System.Threading.Tasks.Task;
 
 namespace GoogleAdk.Core.A2a;
 
@@ -15,12 +14,12 @@ public sealed class AgentExecutorConfig
     public RunConfig? RunConfig { get; set; }
 }
 
-public delegate global::System.Threading.Tasks.Task<RunnerOrRunnerConfig> RunnerFactory();
+public delegate Task<RunnerOrRunnerConfig> RunnerFactory();
 
 public sealed class RunnerOrRunnerConfig
 {
-    public global::GoogleAdk.Core.Runner.Runner? Runner { get; init; }
-    public global::GoogleAdk.Core.Runner.RunnerConfig? RunnerConfig { get; init; }
+    public RunnerType? Runner { get; init; }
+    public RunnerConfig? RunnerConfig { get; init; }
     public RunnerFactory? Factory { get; init; }
 }
 
@@ -105,7 +104,7 @@ public sealed class A2aAgentExecutor
         return a2aEvent;
     }
 
-    private static async global::System.Threading.Tasks.Task<Session> GetOrCreateSessionAsync(
+    private static async Task<Session> GetOrCreateSessionAsync(
         string userId,
         string sessionId,
         BaseSessionService sessionService,
@@ -127,7 +126,7 @@ public sealed class A2aAgentExecutor
         });
     }
 
-    private static async global::System.Threading.Tasks.Task<global::GoogleAdk.Core.Runner.Runner> GetRunnerAsync(RunnerOrRunnerConfig runnerOrConfig)
+    private static async Task<RunnerType> GetRunnerAsync(RunnerOrRunnerConfig runnerOrConfig)
     {
         if (runnerOrConfig.Factory != null)
         {
@@ -139,7 +138,7 @@ public sealed class A2aAgentExecutor
             return runnerOrConfig.Runner;
 
         if (runnerOrConfig.RunnerConfig != null)
-            return new global::GoogleAdk.Core.Runner.Runner(runnerOrConfig.RunnerConfig);
+            return new RunnerType(runnerOrConfig.RunnerConfig);
 
         throw new InvalidOperationException("Invalid runner configuration.");
     }

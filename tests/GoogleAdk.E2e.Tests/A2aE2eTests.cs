@@ -100,7 +100,7 @@ public class A2aE2eTests
                     Parts = [new Part { Text = $"Reply from SimpleTestAgent: {userInput}" }]
                 };
             });
-            await global::System.Threading.Tasks.Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }

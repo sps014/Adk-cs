@@ -1,6 +1,3 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 
 namespace GoogleAdk.Core.A2a;
@@ -42,7 +39,7 @@ public static class MetadataConverterUtils
     {
         return a2aEvent switch
         {
-            Task task => new Dictionary<string, object?>
+            A2aTask task => new Dictionary<string, object?>
             {
                 [AdkMetadataKeys.TaskId] = task.Id,
                 [AdkMetadataKeys.ContextId] = task.ContextId,

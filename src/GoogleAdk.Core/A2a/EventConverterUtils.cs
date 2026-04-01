@@ -1,6 +1,3 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 
@@ -29,7 +26,7 @@ public static class EventConverterUtils
         return a2aEvent switch
         {
             Message msg => MessageToAdkEvent(msg, invocationId, agentName),
-            Task task => TaskToAdkEvent(task, invocationId, agentName),
+            A2aTask task => TaskToAdkEvent(task, invocationId, agentName),
             TaskArtifactUpdateEvent artifact => ArtifactUpdateToAdkEvent(artifact, invocationId, agentName),
             TaskStatusUpdateEvent status => status.Final
                 ? FinalTaskStatusUpdateToAdkEvent(status, invocationId, agentName)
@@ -128,7 +125,7 @@ public static class EventConverterUtils
     }
 
     private static Event? TaskToAdkEvent(
-        Task task,
+        A2aTask task,
         string invocationId,
         string agentName)
     {

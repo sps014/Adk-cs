@@ -1,6 +1,3 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Agents;
@@ -52,7 +49,7 @@ internal sealed class A2aRemoteAgentRunProcessor
             return events;
         }
 
-        if (a2aEvent is Task)
+        if (a2aEvent is A2aTask)
         {
             _aggregations.Clear();
             _aggregationOrder.Clear();
@@ -177,7 +174,7 @@ internal sealed class A2aRemoteAgentRunProcessor
             toAdd["response"] = response;
             switch (response)
             {
-                case Task task:
+                case A2aTask task:
                     if (!string.IsNullOrEmpty(task.Id)) toAdd["task_id"] = task.Id;
                     if (!string.IsNullOrEmpty(task.ContextId)) toAdd["context_id"] = task.ContextId;
                     break;

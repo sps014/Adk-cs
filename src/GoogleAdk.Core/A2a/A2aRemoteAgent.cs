@@ -1,13 +1,11 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Agents;
+using Task = System.Threading.Tasks.Task;
 
 namespace GoogleAdk.Core.A2a;
 
-public delegate global::System.Threading.Tasks.Task BeforeA2aRequestCallback(InvocationContext ctx, MessageSendParams parameters);
-public delegate global::System.Threading.Tasks.Task AfterA2aRequestCallback(InvocationContext ctx, IA2aEvent response);
+public delegate Task BeforeA2aRequestCallback(InvocationContext ctx, MessageSendParams parameters);
+public delegate Task AfterA2aRequestCallback(InvocationContext ctx, IA2aEvent response);
 
 public sealed class RemoteA2aAgentConfig : BaseAgentConfig
 {
@@ -34,7 +32,7 @@ public sealed class RemoteA2aAgent : BaseAgent
             throw new ArgumentException("Either AgentCard, AgentCardSource, or Client must be provided.");
     }
 
-    private async global::System.Threading.Tasks.Task InitAsync()
+    private async Task InitAsync()
     {
         if (_isInitialized) return;
 

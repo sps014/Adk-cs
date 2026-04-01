@@ -1,10 +1,8 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Task = System.Threading.Tasks.Task;
 
 namespace GoogleAdk.Core.A2a;
 
@@ -92,7 +90,7 @@ public sealed class RestSendResponse
     public Message? Message { get; set; }
 
     [JsonPropertyName("task")]
-    public Task? Task { get; set; }
+    public A2aTask? Task { get; set; }
 }
 
 public sealed class A2aClient
@@ -113,7 +111,7 @@ public sealed class A2aClient
         _http = httpClient ?? new HttpClient();
     }
 
-    public async global::System.Threading.Tasks.Task<IA2aEvent> SendMessageAsync(MessageSendParams parameters, CancellationToken cancellationToken = default)
+    public async Task<IA2aEvent> SendMessageAsync(MessageSendParams parameters, CancellationToken cancellationToken = default)
     {
         if (_transport.Equals("JSONRPC", StringComparison.OrdinalIgnoreCase))
         {
@@ -171,7 +169,7 @@ public sealed class A2aClient
             yield return evt;
     }
 
-    private async global::System.Threading.Tasks.Task<HttpResponseMessage> PostJsonAsync(string url, object body, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> PostJsonAsync(string url, object body, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(body, _jsonOptions);
         var response = await _http.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
@@ -179,7 +177,7 @@ public sealed class A2aClient
         return response;
     }
 
-    private async global::System.Threading.Tasks.Task<T> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    private async Task<T> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize<T>(json, _jsonOptions)
@@ -224,7 +222,7 @@ public sealed class A2aClient
         return kind switch
         {
             "message" => element.Deserialize<Message>(_jsonOptions)!,
-            "task" => element.Deserialize<Task>(_jsonOptions)!,
+            "task" => element.Deserialize<A2aTask>(_jsonOptions)!,
             "status-update" => element.Deserialize<TaskStatusUpdateEvent>(_jsonOptions)!,
             "artifact-update" => element.Deserialize<TaskArtifactUpdateEvent>(_jsonOptions)!,
             _ => throw new InvalidOperationException($"Unknown A2A event kind: {kind}"),

@@ -1,6 +1,3 @@
-// Copyright 2025 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 // ============================================================================
 // News Aggregator Sample — Sequential + Parallel Agent Pattern
 // ============================================================================

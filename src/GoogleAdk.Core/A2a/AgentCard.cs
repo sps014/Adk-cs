@@ -1,10 +1,8 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Tools;
+using Task = System.Threading.Tasks.Task;
 
 namespace GoogleAdk.Core.A2a;
 
@@ -90,7 +88,7 @@ public sealed class AgentSkill
 
 public static class AgentCardBuilder
 {
-    public static async global::System.Threading.Tasks.Task<AgentCard> ResolveAgentCardAsync(string source, HttpClient? client = null)
+    public static async Task<AgentCard> ResolveAgentCardAsync(string source, HttpClient? client = null)
     {
         if (source.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
             source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
@@ -104,7 +102,7 @@ public static class AgentCardBuilder
         return JsonSerializer.Deserialize<AgentCard>(content) ?? throw new InvalidOperationException("Invalid AgentCard JSON.");
     }
 
-    public static async global::System.Threading.Tasks.Task<AgentCard> GetA2AAgentCardAsync(
+    public static async Task<AgentCard> GetA2AAgentCardAsync(
         BaseAgent agent,
         IEnumerable<AgentInterface> transports)
     {
@@ -132,21 +130,21 @@ public static class AgentCardBuilder
         };
     }
 
-    public static async global::System.Threading.Tasks.Task<List<AgentSkill>> BuildAgentSkillsAsync(BaseAgent agent)
+    public static async Task<List<AgentSkill>> BuildAgentSkillsAsync(BaseAgent agent)
     {
         var primary = await BuildPrimarySkillsAsync(agent);
         var sub = await BuildSubAgentSkillsAsync(agent);
         return primary.Concat(sub).ToList();
     }
 
-    private static async global::System.Threading.Tasks.Task<List<AgentSkill>> BuildPrimarySkillsAsync(BaseAgent agent)
+    private static async Task<List<AgentSkill>> BuildPrimarySkillsAsync(BaseAgent agent)
     {
         if (agent is LlmAgent llm)
             return await BuildLlmAgentSkillsAsync(llm);
         return BuildNonLlmAgentSkills(agent);
     }
 
-    private static async global::System.Threading.Tasks.Task<List<AgentSkill>> BuildSubAgentSkillsAsync(BaseAgent agent)
+    private static async Task<List<AgentSkill>> BuildSubAgentSkillsAsync(BaseAgent agent)
     {
         var result = new List<AgentSkill>();
         foreach (var sub in agent.SubAgents)
@@ -166,7 +164,7 @@ public static class AgentCardBuilder
         return result;
     }
 
-    private static async global::System.Threading.Tasks.Task<List<AgentSkill>> BuildLlmAgentSkillsAsync(LlmAgent agent)
+    private static async Task<List<AgentSkill>> BuildLlmAgentSkillsAsync(LlmAgent agent)
     {
         var skills = new List<AgentSkill>
         {
@@ -287,7 +285,7 @@ public static class AgentCardBuilder
         return $"{string.Join(" ", descriptions)} in a loop (max {max} iterations).";
     }
 
-    private static async global::System.Threading.Tasks.Task<string> BuildDescriptionFromInstructionsAsync(LlmAgent agent)
+    private static async Task<string> BuildDescriptionFromInstructionsAsync(LlmAgent agent)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(agent.Description))

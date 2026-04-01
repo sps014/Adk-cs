@@ -1,6 +1,3 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 
@@ -114,7 +111,7 @@ public static class EventProcessorUtils
         return null;
     }
 
-    public static TaskStatusUpdateEvent? GetTaskInputRequiredEvent(Task task, Content userContent)
+    public static TaskStatusUpdateEvent? GetTaskInputRequiredEvent(A2aTask task, Content userContent)
     {
         if (!A2aEventHelpers.IsInputRequiredTaskStatusUpdateEvent(task) ||
             task.Status.Message == null)

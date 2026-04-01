@@ -1,6 +1,3 @@
-// Copyright 2026 Google LLC
-// SPDX-License-Identifier: Apache-2.0
-
 using System.Text.Json.Serialization;
 
 namespace GoogleAdk.Core.A2a;
@@ -58,7 +55,7 @@ public sealed class Message : IA2aEvent
     public Dictionary<string, object?>? Metadata { get; set; }
 }
 
-public sealed class Task : IA2aEvent
+public sealed class A2aTask : IA2aEvent
 {
     [JsonPropertyName("kind")]
     public string Kind { get; set; } = "task";
@@ -199,21 +196,21 @@ public static class A2aEventHelpers
         (evt as Message)?.Kind == "message";
 
     public static bool IsTask(object? evt) =>
-        (evt as Task)?.Kind == "task";
+        (evt as A2aTask)?.Kind == "task";
 
     public static Dictionary<string, object?> GetEventMetadata(IA2aEvent evt) =>
         evt.Metadata ?? new Dictionary<string, object?>();
 
     public static bool IsFailedTaskStatusUpdateEvent(object? evt) =>
         (evt is TaskStatusUpdateEvent tsu && tsu.Status.State == TaskState.Failed) ||
-        (evt is Task task && task.Status.State == TaskState.Failed);
+        (evt is A2aTask task && task.Status.State == TaskState.Failed);
 
     public static bool IsTerminalTaskStatusUpdateEvent(object? evt)
     {
         var state = evt switch
         {
             TaskStatusUpdateEvent tsu => tsu.Status.State,
-            Task task => task.Status.State,
+            A2aTask task => task.Status.State,
             _ => null,
         };
 
@@ -225,7 +222,7 @@ public static class A2aEventHelpers
         var state = evt switch
         {
             TaskStatusUpdateEvent tsu => tsu.Status.State,
-            Task task => task.Status.State,
+            A2aTask task => task.Status.State,
             _ => null,
         };
         return state == TaskState.InputRequired;
@@ -261,13 +258,13 @@ public static class A2aEventHelpers
         };
     }
 
-    public static Task CreateTask(
+    public static A2aTask CreateTask(
         string taskId,
         string contextId,
         Message message,
         Dictionary<string, object?>? metadata = null)
     {
-        return new Task
+        return new A2aTask
         {
             Id = string.IsNullOrWhiteSpace(taskId) ? Guid.NewGuid().ToString() : taskId,
             ContextId = contextId,
