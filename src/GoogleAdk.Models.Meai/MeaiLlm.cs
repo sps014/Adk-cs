@@ -46,7 +46,7 @@ public class MeaiLlm : BaseLlm
             {
                 lastRaw = update.RawRepresentation ?? lastRaw;
 
-                if (update.Text != null)
+                if (update.Text is { Length: > 0 })
                 {
                     textBuffer += update.Text;
                     yield return new LlmResponse

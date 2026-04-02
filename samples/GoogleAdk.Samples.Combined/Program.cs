@@ -28,6 +28,7 @@ using GoogleAdk.Core.Runner;
 using GoogleAdk.Core.Tools;
 using GoogleAdk.ApiServer;
 using GoogleAdk.Models.Gemini;
+using GoogleAdk.Samples.Combined;
 
 AdkEnv.Load();
 
@@ -89,7 +90,7 @@ var wordAnalyzer = new LlmAgent(new LlmAgentConfig
         1. The markdown table from the tool
         2. A brief insight about what these top words tell us about today's news cycle
         """,
-    Tools = new List<IBaseTool> { GoogleAdk.Samples.Combined.CombinedTools.CountWordFrequencyTool },
+    Tools = [CombinedTools.CountWordFrequencyTool]
 });
 
 var rootAgent = new SequentialAgent(new BaseAgentConfig
