@@ -63,7 +63,7 @@ static async Task RunConsoleAppAsync(LlmAgent agent)
     Console.WriteLine("╔══════════════════════════════════════════════════════════════╗");
     Console.WriteLine("║  ADK C# — RequireConfirmation Sample                         ║");
     Console.WriteLine("║  Try: \"request 5 days off\" or \"reimburse 120\"               ║");
-    Console.WriteLine("║  The console auto-approves confirmation for the demo.        ║");
+    Console.WriteLine("║  The console will ask for approval before executing tools.   ║");
     Console.WriteLine("║  Type 'quit' to exit.                                        ║");
     Console.WriteLine("╚══════════════════════════════════════════════════════════════╝\n");
 
@@ -87,9 +87,16 @@ static async Task RunConsoleAppAsync(LlmAgent agent)
             continue;
 
         Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.WriteLine("\n[Auto-approving tool confirmation...]\n");
+        Console.Write("\nDo you approve this tool call? (yes/no): ");
+        Console.ResetColor();
+        var approval = Console.ReadLine();
+        var accepted = !string.IsNullOrWhiteSpace(approval) &&
+                       approval.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase);
 
-        var confirmationResponse = BuildConfirmationResponse(confirmation);
+        Console.ForegroundColor = accepted ? ConsoleColor.Green : ConsoleColor.Red;
+        Console.WriteLine(accepted ? "\n[Approved]\n" : "\n[Rejected]\n");
+
+        var confirmationResponse = BuildConfirmationResponse(confirmation, accepted);
         await RunOnceAsync(runner, session.Id, confirmationResponse);
     }
 }
@@ -127,7 +134,7 @@ static async Task<ConfirmationRequest?> RunOnceAsync(
     return confirmation;
 }
 
-static Content BuildConfirmationResponse(ConfirmationRequest request)
+static Content BuildConfirmationResponse(ConfirmationRequest request, bool accepted)
 {
     return new Content
     {
@@ -145,7 +152,7 @@ static Content BuildConfirmationResponse(ConfirmationRequest request)
                         ["toolConfirmation"] = new ToolConfirmation
                         {
                             FunctionCallId = request.OriginalFunctionCallId,
-                            Accepted = true
+                            Accepted = accepted
                         }
                     }
                 }

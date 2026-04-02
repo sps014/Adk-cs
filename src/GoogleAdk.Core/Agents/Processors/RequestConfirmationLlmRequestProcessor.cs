@@ -107,8 +107,7 @@ public class RequestConfirmationLlmRequestProcessor : BaseLlmRequestProcessor
             if (response.Id == null)
                 continue;
 
-            if (TryParseToolConfirmation(response.Response, out var confirmation) &&
-                !string.IsNullOrWhiteSpace(confirmation.FunctionCallId))
+            if (TryParseToolConfirmation(response.Response, out var confirmation))
             {
                 result[response.Id] = confirmation;
             }
@@ -173,6 +172,11 @@ public class RequestConfirmationLlmRequestProcessor : BaseLlmRequestProcessor
             pending.Remove(id);
     }
 
+    private static readonly JsonSerializerOptions s_caseInsensitiveOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private static bool TryParseToolConfirmation(
         Dictionary<string, object?>? response,
         out ToolConfirmation confirmation)
@@ -180,6 +184,7 @@ public class RequestConfirmationLlmRequestProcessor : BaseLlmRequestProcessor
         confirmation = new ToolConfirmation();
         if (response == null) return false;
 
+        // 1) Nested under "toolConfirmation" key (console app / structured format)
         if (response.TryGetValue("toolConfirmation", out var nested) &&
             TryDeserialize<ToolConfirmation>(nested, out var nestedConfirmation))
         {
@@ -187,19 +192,57 @@ public class RequestConfirmationLlmRequestProcessor : BaseLlmRequestProcessor
             return true;
         }
 
-        if (TryDeserialize<ToolConfirmation>(response, out var directConfirmation))
+        // 2) Web UI wrapper format: {"response": "<json_or_text>"}
+        //    Matches Python ADK's _parse_tool_confirmation behavior.
+        if (response.Count == 1 && response.TryGetValue("response", out var responseValue))
+        {
+            var text = responseValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                // Try parsing the inner value as a JSON ToolConfirmation
+                try
+                {
+                    var parsed = JsonSerializer.Deserialize<ToolConfirmation>(text, s_caseInsensitiveOptions);
+                    if (parsed != null)
+                    {
+                        confirmation = parsed;
+                        return true;
+                    }
+                }
+                catch { /* Not valid JSON — fall through to text interpretation */ }
+
+                // Interpret free-text as confirmation/rejection
+                confirmation.Accepted = IsApprovalText(text);
+                return true;
+            }
+        }
+
+        // 3) Direct ToolConfirmation shape
+        if (TryDeserialize<ToolConfirmation>(response, out var directConfirmation) &&
+            (!string.IsNullOrWhiteSpace(directConfirmation.FunctionCallId) || directConfirmation.Accepted != null))
         {
             confirmation = directConfirmation;
             return true;
         }
 
+        // 4) Manual field extraction
         var functionCallId = GetString(response, "functionCallId")
                              ?? GetString(response, "function_call_id");
-        if (string.IsNullOrWhiteSpace(functionCallId)) return false;
 
-        confirmation.FunctionCallId = functionCallId;
+        confirmation.FunctionCallId = functionCallId ?? string.Empty;
         confirmation.Accepted = GetBool(response, "accepted") ?? GetBool(response, "approved");
-        return true;
+        return confirmation.Accepted != null || !string.IsNullOrWhiteSpace(functionCallId);
+    }
+
+    private static bool IsApprovalText(string text)
+    {
+        var trimmed = text.Trim();
+        return trimmed.StartsWith("y", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("approve", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("confirm", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("ok", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("sure", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("accept", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetString(Dictionary<string, object?> response, string key)
