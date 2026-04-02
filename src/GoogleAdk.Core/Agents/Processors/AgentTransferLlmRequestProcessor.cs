@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using GoogleAdk.Core.Abstractions.Events;
-using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Tools;
 
 namespace GoogleAdk.Core.Agents.Processors;
@@ -12,8 +11,6 @@ namespace GoogleAdk.Core.Agents.Processors;
 public class AgentTransferLlmRequestProcessor : BaseLlmRequestProcessor
 {
     public static readonly AgentTransferLlmRequestProcessor Instance = new();
-
-    private const string ToolName = "transfer_to_agent";
 
     public override async IAsyncEnumerable<Event> RunAsync(
         InvocationContext invocationContext,
@@ -31,30 +28,7 @@ public class AgentTransferLlmRequestProcessor : BaseLlmRequestProcessor
         // Add transfer instructions
         llmRequest.AppendInstructions(BuildTargetAgentsInstructions(agent, transferTargets));
 
-        // Add the transfer_to_agent tool
-        var transferTool = new FunctionTool(
-            name: ToolName,
-            description: "Transfer the question to another agent. This tool hands off control to another agent when it is more suitable to answer the user question according to the agent description.",
-            execute: (args, ctx) =>
-            {
-                var agentName = args.GetValueOrDefault("agentName")?.ToString() ?? "";
-                ctx.EventActions.TransferToAgent = agentName;
-                return Task.FromResult<object?>("Transfer queued");
-            },
-            parameters: new Dictionary<string, object?>
-            {
-                ["type"] = "object",
-                ["properties"] = new Dictionary<string, object?>
-                {
-                    ["agentName"] = new Dictionary<string, object?>
-                    {
-                        ["type"] = "string",
-                        ["description"] = "the agent name to transfer to."
-                    }
-                },
-                ["required"] = new[] { "agentName" }
-            });
-
+        var transferTool = new TransferToAgentTool(transferTargets.Select(t => t.Name).ToList());
         llmRequest.AppendTools(new[] { transferTool });
     }
 
@@ -72,7 +46,7 @@ If you are the best to answer the question according to your description, you
 can answer it.
 
 If another agent is better for answering the question according to its
-description, call `{ToolName}` function to transfer the
+description, call `transfer_to_agent` function to transfer the
 question to that agent. When transferring, do not generate any text other than
 the function call.
 ";

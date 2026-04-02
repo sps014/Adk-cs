@@ -93,6 +93,7 @@ public static class WebCommand
 
         var app = builder.Build();
 
+        app.UseWebSockets();
         app.UseCors();
 
         // Map API endpoints

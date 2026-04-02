@@ -138,25 +138,23 @@ public static class CreateCommand
             using GoogleAdk.Core;
             using GoogleAdk.Core.Agents;
             using GoogleAdk.Core.Abstractions.Models;
+            using GoogleAdk.Core.Abstractions.Tools;
             
             // Define a simple tool
-            var getCurrentTime = new FunctionTool(
-                name: "get_current_time",
-                description: "Returns the current time in a specified city.",
-                handler: (args, context) =>
+            public static partial class GeneratedTools
+            {
+                /// <summary>Returns the current time in a specified city.</summary>
+                /// <param name="city">The city name.</param>
+                [FunctionTool(Name = "get_current_time")]
+                public static object? GetCurrentTime(string city)
                 {
-                    var city = args.TryGetValue("city", out var c) ? c?.ToString() : "unknown";
-                    return Task.FromResult<object?>(new { status = "success", report = $"The current time in {city} is {DateTime.UtcNow:HH:mm} UTC" });
-                },
-                parameters: new Dictionary<string, object?>
-                {
-                    ["type"] = "object",
-                    ["properties"] = new Dictionary<string, object?>
+                    return new
                     {
-                        ["city"] = new Dictionary<string, object?> { ["type"] = "string", ["description"] = "The city name" }
-                    },
-                    ["required"] = new[] { "city" }
-                });
+                        status = "success",
+                        report = $"The current time in {city} is {DateTime.UtcNow:HH:mm} UTC"
+                    };
+                }
+            }
             
             // Create the agent
             var agent = new LlmAgent(new LlmAgentConfig
@@ -165,7 +163,7 @@ public static class CreateCommand
                 ModelName = "{{model}}",
                 Description = "A helpful assistant that tells the current time.",
                 Instruction = "You are a helpful assistant. Use the get_current_time tool when asked about time.",
-                Tools = new List<IBaseTool> { getCurrentTime },
+                Tools = new List<IBaseTool> { GeneratedTools.GetCurrentTimeTool },
             });
             
             Console.WriteLine($"Agent '{{agentName}}' is ready!");

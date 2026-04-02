@@ -12,9 +12,11 @@
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Sessions;
+using GoogleAdk.Core.Abstractions.Tools;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Plugins;
 using GoogleAdk.Core.Tools;
+using GoogleAdk.Samples.Plugins;
 
 Console.WriteLine("=== Plugins Sample ===\n");
 
@@ -74,15 +76,13 @@ var securityPlugin = new SecurityPlugin(customPolicy);
 // Simulate tool call checks
 var safeContext = new AgentContext(invocationContext);
 
-var safeTool = new FunctionTool("safe_tool", "A safe tool",
-    (args, ctx) => Task.FromResult<object?>("ok"));
+var safeTool = SamplePluginTools.SafeToolTool;
 
 var beforeResult = await securityPlugin.BeforeToolCallbackAsync(
     safeTool, new Dictionary<string, object?>(), safeContext);
 Console.WriteLine($"safe_tool: {(beforeResult == null ? "ALLOWED" : "BLOCKED")}");
 
-var dangerousTool = new FunctionTool("dangerous_tool", "A dangerous tool",
-    (args, ctx) => Task.FromResult<object?>("ok"));
+var dangerousTool = SamplePluginTools.DangerousToolTool;
 
 var dangerousContext = new AgentContext(invocationContext);
 dangerousContext.FunctionCallId = "call-1";
@@ -92,8 +92,7 @@ Console.WriteLine($"dangerous_tool: {(dangerousResult?.ContainsKey("error") == t
 if (dangerousResult?.ContainsKey("error") == true)
     Console.WriteLine($"  Reason: {dangerousResult["error"]}");
 
-var sensitiveTool = new FunctionTool("sensitive_tool", "A sensitive tool",
-    (args, ctx) => Task.FromResult<object?>("ok"));
+var sensitiveTool = SamplePluginTools.SensitiveToolTool;
 
 var sensitiveContext = new AgentContext(invocationContext);
 sensitiveContext.FunctionCallId = "call-2";

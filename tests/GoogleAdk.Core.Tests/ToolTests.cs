@@ -21,24 +21,7 @@ public class ToolTests
     [Fact]
     public async Task FunctionTool_ExecutesDelegate()
     {
-        var tool = new FunctionTool(
-            "add",
-            "Adds two numbers",
-            (args, ctx) =>
-            {
-                var a = Convert.ToInt32(args["a"]);
-                var b = Convert.ToInt32(args["b"]);
-                return Task.FromResult<object?>(a + b);
-            },
-            parameters: new Dictionary<string, object?>
-            {
-                ["type"] = "object",
-                ["properties"] = new Dictionary<string, object?>
-                {
-                    ["a"] = new Dictionary<string, object?> { ["type"] = "integer" },
-                    ["b"] = new Dictionary<string, object?> { ["type"] = "integer" },
-                }
-            });
+        var tool = GeneratedTools.AddToolTool;
 
         var context = CreateToolContext();
         var result = await tool.RunAsync(new Dictionary<string, object?>
@@ -53,8 +36,7 @@ public class ToolTests
     [Fact]
     public void FunctionTool_HasDeclaration()
     {
-        var tool = new FunctionTool("test", "Test tool",
-            (args, _) => Task.FromResult<object?>(null));
+        var tool = GeneratedTools.TestToolTool;
 
         var decl = tool.GetDeclaration();
         Assert.NotNull(decl);
@@ -94,8 +76,7 @@ public class ToolTests
     [Fact]
     public void SyncFunctionTool_Works()
     {
-        var tool = new FunctionTool("greet", "Greets",
-            (args) => $"Hello {args.GetValueOrDefault("name")}!");
+        var tool = GeneratedTools.GreetTool;
 
         var decl = tool.GetDeclaration();
         Assert.Equal("greet", decl!.Name);

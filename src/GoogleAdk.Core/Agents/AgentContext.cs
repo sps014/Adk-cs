@@ -44,6 +44,16 @@ public class AgentContext
     }
 
     /// <summary>
+    /// Adds a UI widget to be rendered by the client.
+    /// </summary>
+    public void RenderUiWidget(UiWidget widget)
+    {
+        if (EventActions.RenderUiWidgets.Any(w => w.Id == widget.Id))
+            return;
+        EventActions.RenderUiWidgets.Add(widget);
+    }
+
+    /// <summary>
     /// Convenience method to save an artifact and automatically update the artifact delta.
     /// </summary>
     public async Task<int> SaveArtifactAsync(string fileName, GoogleAdk.Core.Abstractions.Models.Part artifact)

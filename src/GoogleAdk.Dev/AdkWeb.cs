@@ -56,6 +56,7 @@ public static class AdkWeb
         app.UseSwagger();
         app.UseSwaggerUI();
         
+        app.UseWebSockets();
         app.UseCors();
         app.MapAdkApi();
         if (enableA2a)

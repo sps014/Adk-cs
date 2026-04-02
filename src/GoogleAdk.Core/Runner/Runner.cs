@@ -16,7 +16,8 @@ namespace GoogleAdk.Core.Runner;
 public class RunnerConfig
 {
     public required string AppName { get; set; }
-    public required BaseAgent Agent { get; set; }
+    public BaseAgent? Agent { get; set; }
+    public Apps.AdkApp? App { get; set; }
     public required BaseSessionService SessionService { get; set; }
     public IBaseArtifactService? ArtifactService { get; set; }
     public IBaseMemoryService? MemoryService { get; set; }
@@ -41,8 +42,10 @@ public class Runner
     public Runner(RunnerConfig config)
     {
         AppName = config.AppName;
-        Agent = config.Agent;
-        PluginManager = new PluginManager(config.Plugins);
+        Agent = config.App?.RootAgent ?? config.Agent
+            ?? throw new InvalidOperationException("RunnerConfig requires Agent or App.");
+        var plugins = config.App?.Plugins ?? config.Plugins;
+        PluginManager = new PluginManager(plugins);
         ArtifactService = config.ArtifactService;
         SessionService = config.SessionService;
         MemoryService = config.MemoryService;
@@ -202,6 +205,108 @@ public class Runner
 
         // Plugin: afterRun
         await PluginManager.RunAfterRunCallbackAsync(invocationContext);
+    }
+
+    /// <summary>
+    /// Runs the agent in live/bidirectional mode.
+    /// </summary>
+    public async IAsyncEnumerable<Event> RunLiveAsync(
+        string userId,
+        string sessionId,
+        LiveRequestQueue liveRequestQueue,
+        Content? initialMessage = null,
+        Dictionary<string, object?>? stateDelta = null,
+        RunConfig? runConfig = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        runConfig ??= new RunConfig { StreamingMode = StreamingMode.Bidi };
+
+        var session = await SessionService.GetSessionAsync(new GetSessionRequest
+        {
+            AppName = AppName,
+            UserId = userId,
+            SessionId = sessionId,
+        }) ?? throw new InvalidOperationException($"Session not found: {sessionId}");
+
+        var invocationContext = new InvocationContext
+        {
+            ArtifactService = ArtifactService,
+            SessionService = SessionService,
+            MemoryService = MemoryService,
+            CredentialService = CredentialService,
+            InvocationId = $"e-{Guid.NewGuid()}",
+            Agent = Agent,
+            Session = session,
+            UserContent = initialMessage,
+            RunConfig = runConfig,
+            PluginManager = PluginManager,
+            LiveRequestQueue = liveRequestQueue,
+        };
+
+        if (initialMessage != null)
+        {
+            var pluginUserMessage = await PluginManager.RunOnUserMessageCallbackAsync(invocationContext, initialMessage);
+            if (pluginUserMessage != null)
+                initialMessage = pluginUserMessage;
+
+            if (initialMessage.Parts != null && initialMessage.Parts.Count > 0)
+            {
+                var userEvent = Event.Create(e =>
+                {
+                    e.InvocationId = invocationContext.InvocationId;
+                    e.Author = "user";
+                    e.Content = initialMessage;
+                    if (stateDelta != null)
+                    {
+                        e.Actions = EventActions.Create(a => a.StateDelta = stateDelta);
+                    }
+                });
+
+                await SessionService.AppendEventAsync(new AppendEventRequest
+                {
+                    Session = session,
+                    Event = userEvent,
+                });
+            }
+        }
+
+        invocationContext.Agent = DetermineAgentForResumption(session, Agent);
+
+        var beforeRunResult = await PluginManager.RunBeforeRunCallbackAsync(invocationContext);
+        if (beforeRunResult != null)
+        {
+            var earlyExitEvent = Event.Create(e =>
+            {
+                e.InvocationId = invocationContext.InvocationId;
+                e.Author = "model";
+                e.Content = beforeRunResult;
+            });
+
+            await SessionService.AppendEventAsync(new AppendEventRequest
+            {
+                Session = session,
+                Event = earlyExitEvent,
+            });
+            yield return earlyExitEvent;
+            yield break;
+        }
+
+        await foreach (var evt in invocationContext.Agent
+            .RunLiveAsync(invocationContext, liveRequestQueue, cancellationToken)
+            .WithCancellation(cancellationToken))
+        {
+            if (evt.Partial != true)
+            {
+                await SessionService.AppendEventAsync(new AppendEventRequest
+                {
+                    Session = session,
+                    Event = evt,
+                });
+            }
+
+            var modifiedEvent = await PluginManager.RunOnEventCallbackAsync(invocationContext, evt);
+            yield return modifiedEvent ?? evt;
+        }
     }
 
     /// <summary>

@@ -64,6 +64,7 @@ public static class FunctionCallHandler
         Event functionCallEvent,
         Dictionary<string, IBaseTool> toolsDict,
         IReadOnlyList<BeforeToolCallback> beforeToolCallbacks,
+        IReadOnlyList<OnToolErrorCallback> onToolErrorCallbacks,
         IReadOnlyList<AfterToolCallback> afterToolCallbacks,
         Dictionary<string, Abstractions.Tools.ToolConfirmation>? toolConfirmations = null,
         HashSet<string>? filterFunctionCallIds = null)
@@ -134,9 +135,21 @@ public static class FunctionCallHandler
                     // Try plugin error callback
                     if (invocationContext.PluginManager != null)
                     {
-                        // Plugin could handle the error
+                        functionResponse = await invocationContext.PluginManager
+                            .RunOnToolErrorCallbackAsync(tool, args, toolContext, ex);
+                        if (functionResponse != null)
+                            continue;
                     }
-                    errorMessage = ex.Message;
+
+                    foreach (var callback in onToolErrorCallbacks)
+                    {
+                        functionResponse = await callback(tool, args, toolContext, ex);
+                        if (functionResponse != null)
+                            break;
+                    }
+
+                    if (functionResponse == null)
+                        errorMessage = ex.Message;
                 }
             }
 
@@ -367,6 +380,9 @@ public static class FunctionCallHandler
             // Merge tool confirmations
             foreach (var (k, v) in evt.Actions.RequestedToolConfirmations)
                 mergedActions.RequestedToolConfirmations[k] = v;
+
+            if (evt.Actions.RenderUiWidgets.Count > 0)
+                mergedActions.RenderUiWidgets.AddRange(evt.Actions.RenderUiWidgets);
 
             if (evt.Actions.TransferToAgent != null)
                 mergedActions.TransferToAgent = evt.Actions.TransferToAgent;

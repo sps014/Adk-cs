@@ -41,6 +41,9 @@ public class InvocationContext
     /// <summary>Runtime configuration.</summary>
     public RunConfig? RunConfig { get; set; }
 
+    /// <summary>Live request queue for bidirectional sessions.</summary>
+    public LiveRequestQueue? LiveRequestQueue { get; set; }
+
     /// <summary>Plugin manager for this invocation.</summary>
     public PluginManager? PluginManager { get; set; }
 
@@ -67,6 +70,7 @@ public class InvocationContext
         Session = parent.Session;
         EndInvocation = parent.EndInvocation;
         RunConfig = parent.RunConfig;
+        LiveRequestQueue = parent.LiveRequestQueue;
         PluginManager = parent.PluginManager;
         PendingArtifactDelta = parent.PendingArtifactDelta;
     }

@@ -52,3 +52,45 @@ public class CreateSessionBody
     [JsonPropertyName("state")]
     public Dictionary<string, object?>? State { get; set; }
 }
+
+/// <summary>
+/// Request body for /run_live websocket initialization.
+/// </summary>
+public class RunLiveRequest
+{
+    [JsonPropertyName("appName")]
+    public string AppName { get; set; } = string.Empty;
+
+    [JsonPropertyName("userId")]
+    public string UserId { get; set; } = string.Empty;
+
+    [JsonPropertyName("sessionId")]
+    public string SessionId { get; set; } = string.Empty;
+
+    [JsonPropertyName("initialMessage")]
+    public Content? InitialMessage { get; set; }
+
+    [JsonPropertyName("stateDelta")]
+    public Dictionary<string, object?>? StateDelta { get; set; }
+
+    [JsonPropertyName("runConfig")]
+    public GoogleAdk.Core.Agents.RunConfig? RunConfig { get; set; }
+}
+
+/// <summary>
+/// Live request payload for websocket messages after initialization.
+/// </summary>
+public class LiveRequestMessage
+{
+    [JsonPropertyName("content")]
+    public Content? Content { get; set; }
+
+    [JsonPropertyName("realtimePart")]
+    public Part? RealtimePart { get; set; }
+
+    [JsonPropertyName("activity")]
+    public string? Activity { get; set; }
+
+    [JsonPropertyName("close")]
+    public bool Close { get; set; }
+}

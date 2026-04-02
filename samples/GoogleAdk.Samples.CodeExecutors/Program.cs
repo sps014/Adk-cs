@@ -13,6 +13,9 @@ using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.CodeExecutors;
+using GoogleAdk.Core;
+
+AdkEnv.Load();
 
 Console.WriteLine("=== Code Executors Sample ===\n");
 

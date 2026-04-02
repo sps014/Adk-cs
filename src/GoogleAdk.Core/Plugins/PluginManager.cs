@@ -140,4 +140,15 @@ public class PluginManager
         }
         return null;
     }
+
+    public async Task<Dictionary<string, object?>?> RunOnToolErrorCallbackAsync(
+        BaseTool tool, Dictionary<string, object?> toolArgs, AgentContext toolContext, Exception error)
+    {
+        foreach (var plugin in _plugins)
+        {
+            var pluginResult = await plugin.OnToolErrorCallbackAsync(tool, toolArgs, toolContext, error);
+            if (pluginResult != null) return pluginResult;
+        }
+        return null;
+    }
 }

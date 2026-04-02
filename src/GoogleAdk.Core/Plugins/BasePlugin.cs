@@ -88,6 +88,14 @@ public abstract class BasePlugin
         => Task.FromResult<Dictionary<string, object?>?>(null);
 
     /// <summary>
+    /// Called when a tool execution throws an error.
+    /// Return a dictionary to recover gracefully.
+    /// </summary>
+    public virtual Task<Dictionary<string, object?>?> OnToolErrorCallbackAsync(
+        BaseTool tool, Dictionary<string, object?> toolArgs, AgentContext toolContext, Exception error)
+        => Task.FromResult<Dictionary<string, object?>?>(null);
+
+    /// <summary>
     /// Called after a tool has been called.
     /// Return a dictionary to replace the tool's result.
     /// </summary>

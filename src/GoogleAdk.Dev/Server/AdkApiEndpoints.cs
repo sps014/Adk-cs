@@ -4,6 +4,8 @@ using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Dev.Server;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.WebSockets;
+using System.Text;
 
 namespace GoogleAdk.Dev.Server;
 
@@ -194,6 +196,75 @@ public static class AdkApiEndpoints
                     await http.Response.WriteAsync(errorJson, http.RequestAborted);
                 }
             }
+        });
+
+        // ── Run Live (WebSocket) ───────────────────────────────────────────
+        app.Map("/run_live", async (HttpContext http, RunnerManager mgr) =>
+        {
+            if (!http.WebSockets.IsWebSocketRequest)
+                return Results.BadRequest("WebSocket required.");
+
+            using var socket = await http.WebSockets.AcceptWebSocketAsync();
+            var initPayload = await ReceiveJsonAsync(socket, http.RequestAborted);
+            if (string.IsNullOrWhiteSpace(initPayload))
+                return Results.BadRequest("Missing init payload.");
+
+            var initReq = JsonSerializer.Deserialize<RunLiveRequest>(initPayload, s_jsonOptions);
+            if (initReq == null || string.IsNullOrWhiteSpace(initReq.AppName))
+                return Results.BadRequest("Invalid init payload.");
+
+            var runner = mgr.GetOrCreate(initReq.AppName);
+            var liveQueue = new LiveRequestQueue();
+
+            var runConfig = initReq.RunConfig ?? new GoogleAdk.Core.Agents.RunConfig
+            {
+                StreamingMode = GoogleAdk.Core.Agents.StreamingMode.Bidi
+            };
+
+            var sendTask = Task.Run(async () =>
+            {
+                await foreach (var evt in runner.RunLiveAsync(
+                    initReq.UserId, initReq.SessionId, liveQueue,
+                    initialMessage: initReq.InitialMessage,
+                    stateDelta: initReq.StateDelta,
+                    runConfig: runConfig,
+                    cancellationToken: http.RequestAborted))
+                {
+                    var json = JsonSerializer.Serialize(evt, s_jsonOptions);
+                    await SendJsonAsync(socket, json, http.RequestAborted);
+                }
+            }, http.RequestAborted);
+
+            try
+            {
+                while (socket.State == WebSocketState.Open && !http.RequestAborted.IsCancellationRequested)
+                {
+                    var payload = await ReceiveJsonAsync(socket, http.RequestAborted);
+                    if (payload == null) break;
+
+                    var msg = JsonSerializer.Deserialize<LiveRequestMessage>(payload, s_jsonOptions);
+                    if (msg == null) continue;
+
+                    if (msg.Close)
+                    {
+                        liveQueue.Close();
+                        break;
+                    }
+
+                    if (msg.Content != null)
+                        await liveQueue.SendContentAsync(msg.Content, http.RequestAborted);
+                    else if (msg.RealtimePart != null)
+                        await liveQueue.SendRealtimeAsync(msg.RealtimePart, http.RequestAborted);
+                }
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                liveQueue.Close();
+                await sendTask;
+            }
+
+            return Results.Empty;
         });
 
         // ── Builder App (stub for Python ADK UI compatibility) ──────────
@@ -421,5 +492,29 @@ public static class AdkApiEndpoints
             });
 
         return app;
+    }
+
+    private static async Task<string?> ReceiveJsonAsync(WebSocket socket, CancellationToken cancellationToken)
+    {
+        var buffer = new ArraySegment<byte>(new byte[8192]);
+        using var ms = new MemoryStream();
+
+        while (true)
+        {
+            var result = await socket.ReceiveAsync(buffer, cancellationToken);
+            if (result.MessageType == WebSocketMessageType.Close)
+                return null;
+
+            ms.Write(buffer.Array!, buffer.Offset, result.Count);
+            if (result.EndOfMessage) break;
+        }
+
+        return Encoding.UTF8.GetString(ms.ToArray());
+    }
+
+    private static Task SendJsonAsync(WebSocket socket, string json, CancellationToken cancellationToken)
+    {
+        var bytes = Encoding.UTF8.GetBytes(json);
+        return socket.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
     }
 }

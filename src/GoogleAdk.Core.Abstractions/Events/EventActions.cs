@@ -50,6 +50,11 @@ public class EventActions
     public Dictionary<string, object?>? CustomMetadata { get; set; }
 
     /// <summary>
+    /// UI widgets requested for rendering.
+    /// </summary>
+    public List<UiWidget> RenderUiWidgets { get; set; } = new();
+
+    /// <summary>
     /// Creates a new EventActions with default values.
     /// </summary>
     public static EventActions Create(Action<EventActions>? configure = null)
@@ -89,6 +94,9 @@ public class EventActions
             foreach (var kv in source.RequestedToolConfirmations)
                 result.RequestedToolConfirmations[kv.Key] = kv.Value;
 
+            if (source.RenderUiWidgets.Count > 0)
+                result.RenderUiWidgets.AddRange(source.RenderUiWidgets);
+
             CopyScalars(source, result);
         }
 
@@ -115,5 +123,7 @@ public class EventActions
             target.RequestedAuthConfigs[kv.Key] = kv.Value;
         foreach (var kv in source.RequestedToolConfirmations)
             target.RequestedToolConfirmations[kv.Key] = kv.Value;
+        if (source.RenderUiWidgets.Count > 0)
+            target.RenderUiWidgets.AddRange(source.RenderUiWidgets);
     }
 }

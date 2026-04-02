@@ -16,6 +16,12 @@
     <Project Path="samples/GoogleAdk.Samples.Events/GoogleAdk.Samples.Events.csproj" />
     <Project Path="samples/GoogleAdk.Samples.VertexAiSearch/GoogleAdk.Samples.VertexAiSearch.csproj" />
     <Project Path="samples/GoogleAdk.Samples.Ollama/GoogleAdk.Samples.Ollama.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.Planning/GoogleAdk.Samples.Planning.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.LiveBidi/GoogleAdk.Samples.LiveBidi.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.OutputSchema/GoogleAdk.Samples.OutputSchema.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.FeatureFlags/GoogleAdk.Samples.FeatureFlags.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.EvalOptimize/GoogleAdk.Samples.EvalOptimize.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.Tools/GoogleAdk.Samples.Tools.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/GoogleAdk.Core.Abstractions/GoogleAdk.Core.Abstractions.csproj" />
@@ -27,6 +33,8 @@
     <Project Path="src/GoogleAdk.SourceGenerators/GoogleAdk.SourceGenerators.csproj" />
     <Project Path="src/GoogleAdk.Tools.Mcp/GoogleAdk.Tools.Mcp.csproj" />
     <Project Path="src/GoogleAdk.Tools.OpenApi/GoogleAdk.Tools.OpenApi.csproj" />
+    <Project Path="src/GoogleAdk.Evaluation/GoogleAdk.Evaluation.csproj" />
+    <Project Path="src/GoogleAdk.Optimization/GoogleAdk.Optimization.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GoogleAdk.Core.Tests/GoogleAdk.Core.Tests.csproj" />

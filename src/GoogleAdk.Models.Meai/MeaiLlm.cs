@@ -126,9 +126,8 @@ public class MeaiLlm : BaseLlm
     /// <inheritdoc />
     public override Task<BaseLlmConnection> ConnectAsync(LlmRequest llmRequest)
     {
-        throw new NotSupportedException(
-            "Live/bidirectional connections are not supported through MEAI IChatClient. " +
-            "Use a native provider implementation for live connections.");
+        BaseLlmConnection connection = new StreamingLlmConnection(this, llmRequest);
+        return Task.FromResult(connection);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using GoogleAdk.Core.Agents.Processors;
 using GoogleAdk.Core.CodeExecutors;
 using GoogleAdk.Core.Context;
 using GoogleAdk.Core.Examples;
+using GoogleAdk.Core.Planning;
 using GoogleAdk.Core.Tools;
 using System.Runtime.CompilerServices;
 
@@ -27,11 +28,24 @@ public delegate Task<LlmResponse?> BeforeModelCallback(AgentContext context, Llm
 public delegate Task<LlmResponse?> AfterModelCallback(AgentContext context, LlmResponse response);
 
 /// <summary>
+/// Callback that runs when a model call throws an exception.
+/// Return an LlmResponse to recover gracefully.
+/// </summary>
+public delegate Task<LlmResponse?> OnModelErrorCallback(AgentContext context, LlmRequest request, Exception error);
+
+/// <summary>
 /// Callback that runs before a tool is called.
 /// Return a dictionary to skip the actual tool call.
 /// </summary>
 public delegate Task<Dictionary<string, object?>?> BeforeToolCallback(
     BaseTool tool, Dictionary<string, object?> args, AgentContext context);
+
+/// <summary>
+/// Callback that runs when a tool call throws an exception.
+/// Return a dictionary to recover gracefully.
+/// </summary>
+public delegate Task<Dictionary<string, object?>?> OnToolErrorCallback(
+    BaseTool tool, Dictionary<string, object?> args, AgentContext context, Exception error);
 
 /// <summary>
 /// Callback that runs after a tool is called.
@@ -78,6 +92,9 @@ public class LlmAgentConfig : BaseAgentConfig
     /// <summary>Dynamic example provider for query-dependent few-shot examples.</summary>
     public BaseExampleProvider? ExampleProvider { get; set; }
 
+    /// <summary>Optional planner for planning-aware agent behavior.</summary>
+    public IPlanner? Planner { get; set; }
+
     /// <summary>Generate content configuration.</summary>
     public GenerateContentConfig? GenerateContentConfig { get; set; }
 
@@ -87,8 +104,14 @@ public class LlmAgentConfig : BaseAgentConfig
     /// <summary>After model callbacks.</summary>
     public List<AfterModelCallback>? AfterModelCallbacks { get; set; }
 
+    /// <summary>Model error callbacks.</summary>
+    public List<OnModelErrorCallback>? OnModelErrorCallbacks { get; set; }
+
     /// <summary>Before tool callbacks.</summary>
     public List<BeforeToolCallback>? BeforeToolCallbacks { get; set; }
+
+    /// <summary>Tool error callbacks.</summary>
+    public List<OnToolErrorCallback>? OnToolErrorCallbacks { get; set; }
 
     /// <summary>After tool callbacks.</summary>
     public List<AfterToolCallback>? AfterToolCallbacks { get; set; }
@@ -122,6 +145,9 @@ public class LlmAgentConfig : BaseAgentConfig
 
     /// <summary>Context compactors to evaluate in priority order before content loading.</summary>
     public List<IContextCompactor>? ContextCompactors { get; set; }
+
+    /// <summary>Context cache configuration for supported models.</summary>
+    public ContextCacheConfig? ContextCacheConfig { get; set; }
 }
 
 /// <summary>
@@ -141,10 +167,13 @@ public class LlmAgent : BaseAgent
     public BaseCodeExecutor? CodeExecutor { get; }
     public List<Example> Examples { get; }
     public BaseExampleProvider? ExampleProvider { get; }
+    public IPlanner? Planner { get; set; }
     public GenerateContentConfig? GenerateContentConfig { get; set; }
     public List<BeforeModelCallback> BeforeModelCallbacks { get; }
     public List<AfterModelCallback> AfterModelCallbacks { get; }
+    public List<OnModelErrorCallback> OnModelErrorCallbacks { get; }
     public List<BeforeToolCallback> BeforeToolCallbacks { get; }
+    public List<OnToolErrorCallback> OnToolErrorCallbacks { get; }
     public List<AfterToolCallback> AfterToolCallbacks { get; }
     public Dictionary<string, object?>? OutputSchema { get; set; }
     public Dictionary<string, object?>? InputSchema { get; set; }
@@ -154,6 +183,7 @@ public class LlmAgent : BaseAgent
     public IncludeContentsMode IncludeContents { get; set; } = IncludeContentsMode.Default;
     public List<BaseLlmRequestProcessor> RequestProcessors { get; }
     public List<BaseLlmResponseProcessor> ResponseProcessors { get; }
+    public ContextCacheConfig? ContextCacheConfig { get; set; }
 
     public LlmAgent(LlmAgentConfig config) : base(config)
     {
@@ -167,10 +197,13 @@ public class LlmAgent : BaseAgent
         CodeExecutor = config.CodeExecutor;
         Examples = config.Examples ?? new List<Example>();
         ExampleProvider = config.ExampleProvider;
+        Planner = config.Planner;
         GenerateContentConfig = config.GenerateContentConfig;
         BeforeModelCallbacks = config.BeforeModelCallbacks ?? new();
         AfterModelCallbacks = config.AfterModelCallbacks ?? new();
+        OnModelErrorCallbacks = config.OnModelErrorCallbacks ?? new();
         BeforeToolCallbacks = config.BeforeToolCallbacks ?? new();
+        OnToolErrorCallbacks = config.OnToolErrorCallbacks ?? new();
         AfterToolCallbacks = config.AfterToolCallbacks ?? new();
         OutputSchema = config.OutputSchema;
         InputSchema = config.InputSchema;
@@ -178,6 +211,7 @@ public class LlmAgent : BaseAgent
         DisallowTransferToParent = config.DisallowTransferToParent;
         DisallowTransferToPeers = config.DisallowTransferToPeers;
         IncludeContents = config.IncludeContents;
+        ContextCacheConfig = config.ContextCacheConfig;
 
         // Build request processor pipeline (order matters)
         RequestProcessors = config.RequestProcessors ?? new List<BaseLlmRequestProcessor>
@@ -185,9 +219,12 @@ public class LlmAgent : BaseAgent
             BasicLlmRequestProcessor.Instance,
             IdentityLlmRequestProcessor.Instance,
             InstructionsLlmRequestProcessor.Instance,
+            NlPlanningRequestProcessor.Instance,
             RequestConfirmationLlmRequestProcessor.Instance,
             ContentRequestProcessor.Instance,
+            ContextCacheRequestProcessor.Instance,
             CodeExecutionRequestProcessor.Instance,
+            OutputSchemaRequestProcessor.Instance,
         };
 
         // Insert context compactor before content processor when using defaults
@@ -205,7 +242,10 @@ public class LlmAgent : BaseAgent
         if (!agentTransferDisabled)
             RequestProcessors.Add(AgentTransferLlmRequestProcessor.Instance);
 
-        ResponseProcessors = config.ResponseProcessors ?? new();
+        ResponseProcessors = config.ResponseProcessors ?? new List<BaseLlmResponseProcessor>
+        {
+            NlPlanningResponseProcessor.Instance,
+        };
 
         // Validate generateContentConfig
         if (config.GenerateContentConfig != null)
@@ -314,6 +354,118 @@ public class LlmAgent : BaseAgent
             if (lastEvent.Partial == true)
                 break;
         }
+    }
+
+    public override async IAsyncEnumerable<Event> RunLiveAsync(
+        InvocationContext parentContext,
+        LiveRequestQueue liveRequestQueue,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var span = Telemetry.AdkTracing.StartSpan(Name);
+        var context = CreateInvocationContext(parentContext);
+        context.LiveRequestQueue = liveRequestQueue;
+
+        var beforeEvent = await HandleBeforeAgentCallbackAsync(context);
+        if (beforeEvent != null)
+        {
+            yield return beforeEvent;
+            if (context.EndInvocation) yield break;
+        }
+
+        Telemetry.AdkTracing.TraceAgentInvocation(this, context);
+
+        await foreach (var evt in RunLiveAsyncImpl(context, cancellationToken).WithCancellation(cancellationToken))
+        {
+            yield return evt;
+        }
+
+        if (context.EndInvocation) yield break;
+
+        var afterEvent = await HandleAfterAgentCallbackAsync(context);
+        if (afterEvent != null)
+            yield return afterEvent;
+    }
+
+    private async IAsyncEnumerable<Event> RunLiveAsyncImpl(
+        InvocationContext invocationContext,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var llmRequest = new LlmRequest();
+
+        foreach (var processor in RequestProcessors)
+        {
+            await foreach (var evt in processor.RunAsync(invocationContext, llmRequest).WithCancellation(cancellationToken))
+                yield return evt;
+        }
+
+        foreach (var toolUnion in Tools)
+        {
+            var toolContext = new AgentContext(invocationContext);
+            if (toolUnion is BaseTool bt)
+            {
+                await bt.ProcessLlmRequestAsync(toolContext, llmRequest);
+            }
+            else if (toolUnion is BaseToolset toolset)
+            {
+                var resolvedTools = await toolset.GetToolsAsync(toolContext);
+                foreach (var tool in resolvedTools)
+                    await tool.ProcessLlmRequestAsync(toolContext, llmRequest);
+            }
+        }
+
+        if (invocationContext.EndInvocation)
+            yield break;
+
+        var modelResponseEvent = Event.Create(e =>
+        {
+            e.InvocationId = invocationContext.InvocationId;
+            e.Author = Name;
+            e.Branch = invocationContext.Branch;
+            if (invocationContext.PendingArtifactDelta != null)
+            {
+                e.Actions = EventActions.Create(a => a.ArtifactDelta = invocationContext.PendingArtifactDelta);
+                invocationContext.PendingArtifactDelta = null;
+            }
+        });
+
+        var llm = CanonicalModel;
+        invocationContext.IncrementLlmCallCount();
+        await using var connection = await llm.ConnectAsync(llmRequest);
+
+        if (llmRequest.Contents.Count > 0)
+            await connection.SendHistoryAsync(llmRequest.Contents, cancellationToken);
+
+        var sendTask = Task.Run(async () =>
+        {
+            await foreach (var liveRequest in invocationContext.LiveRequestQueue!.ReadAllAsync(cancellationToken))
+            {
+                if (liveRequest.Close)
+                    break;
+
+                if (liveRequest.Activity != null)
+                    continue;
+
+                if (liveRequest.RealtimePart != null)
+                    await connection.SendRealtimeAsync(liveRequest.RealtimePart, cancellationToken);
+                else if (liveRequest.Content != null)
+                    await connection.SendContentAsync(liveRequest.Content, cancellationToken);
+            }
+        }, cancellationToken);
+
+        await foreach (var llmResponse in connection.ReceiveAsync(cancellationToken))
+        {
+            await foreach (var evt in PostprocessAsync(
+                invocationContext, llmRequest, llmResponse, modelResponseEvent, cancellationToken))
+            {
+                if (evt.Content?.Parts != null && evt.Content.Parts.Any(p => p.FunctionResponse != null))
+                    await invocationContext.LiveRequestQueue!.SendContentAsync(evt.Content, cancellationToken);
+
+                yield return evt;
+            }
+        }
+
+        invocationContext.LiveRequestQueue!.Close();
+        await sendTask;
     }
 
     private async IAsyncEnumerable<Event> RunOneStepAsync(
@@ -446,7 +598,7 @@ public class LlmAgent : BaseAgent
 
         var functionResponseEvent = await FunctionCallHandler.HandleFunctionCallsAsync(
             invocationContext, mergedEvent, llmRequest.ToolsDict,
-            BeforeToolCallbacks, AfterToolCallbacks);
+            BeforeToolCallbacks, OnToolErrorCallbacks, AfterToolCallbacks);
 
         if (functionResponseEvent == null)
             yield break;
@@ -468,6 +620,25 @@ public class LlmAgent : BaseAgent
 
         // Yield function response
         yield return functionResponseEvent;
+
+        // Output schema: convert set_model_response into final model response
+        var structuredResponse = SetModelResponseTool.TryExtractStructuredResponse(functionResponseEvent);
+        if (!string.IsNullOrWhiteSpace(structuredResponse))
+        {
+            yield return Event.Create(e =>
+            {
+                e.InvocationId = invocationContext.InvocationId;
+                e.Author = Name;
+                e.Branch = invocationContext.Branch;
+                e.Content = new Content
+                {
+                    Role = "model",
+                    Parts = new List<Part> { new() { Text = structuredResponse } }
+                };
+            });
+            invocationContext.EndInvocation = true;
+            yield break;
+        }
 
         // Agent transfer
         var nextAgentName = functionResponseEvent.Actions.TransferToAgent;
@@ -504,13 +675,47 @@ public class LlmAgent : BaseAgent
 
         var stream = invocationContext.RunConfig?.StreamingMode == StreamingMode.Sse;
         using var llmSpan = Telemetry.AdkTracing.StartSpan("call_llm");
-        await foreach (var llmResponse in llm.GenerateContentAsync(llmRequest, stream).WithCancellation(cancellationToken))
+        var channel = System.Threading.Channels.Channel.CreateUnbounded<LlmResponse>();
+        Exception? error = null;
+        var recovered = false;
+
+        var writerTask = Task.Run(async () =>
         {
-            Telemetry.AdkTracing.TraceCallLlm(invocationContext, modelResponseEvent.Id, llmRequest, llmResponse);
-            // Plugin after model → canonical after model
-            var altered = await HandleAfterModelCallbackAsync(invocationContext, llmResponse, callbackContext);
-            yield return altered ?? llmResponse;
-        }
+            try
+            {
+                await foreach (var llmResponse in llm.GenerateContentAsync(llmRequest, stream).WithCancellation(cancellationToken))
+                {
+                    Telemetry.AdkTracing.TraceCallLlm(invocationContext, modelResponseEvent.Id, llmRequest, llmResponse);
+                    var altered = await HandleAfterModelCallbackAsync(invocationContext, llmResponse, callbackContext);
+                    await channel.Writer.WriteAsync(altered ?? llmResponse, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                var recovery = await HandleOnModelErrorCallbackAsync(invocationContext, llmRequest, callbackContext, ex);
+                if (recovery != null)
+                {
+                    recovered = true;
+                    await channel.Writer.WriteAsync(recovery, cancellationToken);
+                }
+                else
+                {
+                    error = ex;
+                }
+            }
+            finally
+            {
+                channel.Writer.TryComplete();
+            }
+        }, cancellationToken);
+
+        await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+            yield return item;
+
+        await writerTask;
+
+        if (error != null && !recovered)
+            throw error;
     }
 
     private async Task<LlmResponse?> HandleBeforeModelCallbackAsync(
@@ -550,6 +755,29 @@ public class LlmAgent : BaseAgent
             var response = await callback(callbackContext, llmResponse);
             if (response != null) return response;
         }
+        return null;
+    }
+
+    private async Task<LlmResponse?> HandleOnModelErrorCallbackAsync(
+        InvocationContext invocationContext,
+        LlmRequest llmRequest,
+        AgentContext callbackContext,
+        Exception error)
+    {
+        if (invocationContext.PluginManager != null)
+        {
+            var pluginResponse = await invocationContext.PluginManager
+                .RunOnModelErrorCallbackAsync(callbackContext, llmRequest, error);
+            if (pluginResponse != null)
+                return pluginResponse;
+        }
+
+        foreach (var callback in OnModelErrorCallbacks)
+        {
+            var response = await callback(callbackContext, llmRequest, error);
+            if (response != null) return response;
+        }
+
         return null;
     }
 

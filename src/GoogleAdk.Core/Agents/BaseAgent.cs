@@ -118,6 +118,19 @@ public abstract class BaseAgent
     }
 
     /// <summary>
+    /// Runs the agent in live/bidirectional mode.
+    /// Default behavior falls back to RunAsync.
+    /// </summary>
+    public virtual async IAsyncEnumerable<Event> RunLiveAsync(
+        InvocationContext parentContext,
+        LiveRequestQueue liveRequestQueue,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var evt in RunAsync(parentContext, cancellationToken).WithCancellation(cancellationToken))
+            yield return evt;
+    }
+
+    /// <summary>
     /// Core agent logic. Implemented by subclasses.
     /// </summary>
     protected abstract IAsyncEnumerable<Event> RunAsyncImpl(
@@ -151,7 +164,7 @@ public abstract class BaseAgent
         return new InvocationContext(parentContext) { Agent = this };
     }
 
-    private async Task<Event?> HandleBeforeAgentCallbackAsync(InvocationContext invocationContext)
+    protected async Task<Event?> HandleBeforeAgentCallbackAsync(InvocationContext invocationContext)
     {
         if (BeforeAgentCallbacks.Count == 0) return null;
 
@@ -186,7 +199,7 @@ public abstract class BaseAgent
         return null;
     }
 
-    private async Task<Event?> HandleAfterAgentCallbackAsync(InvocationContext invocationContext)
+    protected async Task<Event?> HandleAfterAgentCallbackAsync(InvocationContext invocationContext)
     {
         if (AfterAgentCallbacks.Count == 0) return null;
 

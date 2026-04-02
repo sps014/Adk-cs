@@ -57,14 +57,24 @@ public abstract class BaseLlm
 public abstract class BaseLlmConnection : IAsyncDisposable
 {
     /// <summary>
-    /// Sends content to the LLM.
+    /// Sends the conversation history to the LLM.
     /// </summary>
-    public abstract Task SendAsync(Events.LlmRequest request);
+    public abstract Task SendHistoryAsync(IEnumerable<Content> history, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a single content turn to the LLM.
+    /// </summary>
+    public abstract Task SendContentAsync(Content content, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends realtime input (audio/video blobs or activity signals) to the LLM.
+    /// </summary>
+    public abstract Task SendRealtimeAsync(Part part, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Receives responses from the LLM.
     /// </summary>
-    public abstract IAsyncEnumerable<LlmResponse> ReceiveAsync();
+    public abstract IAsyncEnumerable<LlmResponse> ReceiveAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Closes the connection.

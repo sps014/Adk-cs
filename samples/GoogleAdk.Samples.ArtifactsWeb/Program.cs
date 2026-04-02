@@ -4,6 +4,7 @@ using GoogleAdk.Core.Abstractions.Artifacts;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Tools;
 using System.Text;
+using GoogleAdk.Core;
 
 namespace GoogleAdk.Samples.ArtifactsWeb;
 
@@ -93,6 +94,7 @@ public class Program
     /// </summary>
     public static async Task Main(string[] args)
     {
+        AdkEnv.Load();
         Console.WriteLine("==> Demo: Artifacts Web Sample (Summarization)\n");
 
         var agent = new LlmAgent(new LlmAgentConfig

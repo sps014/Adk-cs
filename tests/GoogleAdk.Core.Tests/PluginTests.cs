@@ -93,7 +93,7 @@ public class PluginTests
         var agentCtx = new AgentContext(ctx);
         agentCtx.FunctionCallId = "call-1";
 
-        var tool = new FunctionTool("safe_tool", "test", (args, c) => Task.FromResult<object?>("ok"));
+        var tool = GeneratedTools.SafeToolTool;
         var result = await plugin.BeforeToolCallbackAsync(tool, new Dictionary<string, object?>(), agentCtx);
 
         Assert.Null(result);
@@ -108,7 +108,7 @@ public class PluginTests
         var agentCtx = new AgentContext(ctx);
         agentCtx.FunctionCallId = "call-1";
 
-        var tool = new FunctionTool("dangerous_tool", "test", (args, c) => Task.FromResult<object?>("ok"));
+        var tool = GeneratedTools.DangerousToolTool;
         var result = await plugin.BeforeToolCallbackAsync(tool, new Dictionary<string, object?>(), agentCtx);
 
         Assert.NotNull(result);
@@ -124,7 +124,7 @@ public class PluginTests
         var agentCtx = new AgentContext(ctx);
         agentCtx.FunctionCallId = "call-1";
 
-        var tool = new FunctionTool("sensitive_tool", "test", (args, c) => Task.FromResult<object?>("ok"));
+        var tool = GeneratedTools.SensitiveToolTool;
         var result = await plugin.BeforeToolCallbackAsync(tool, new Dictionary<string, object?>(), agentCtx);
 
         Assert.NotNull(result);
@@ -137,7 +137,7 @@ public class PluginTests
     public async Task InMemoryPolicyEngine_ReturnsAllow()
     {
         var engine = new InMemoryPolicyEngine();
-        var tool = new FunctionTool("any_tool", "test", (args, c) => Task.FromResult<object?>("ok"));
+        var tool = GeneratedTools.AnyToolTool;
 
         var result = await engine.EvaluateAsync(new ToolCallPolicyContext
         {

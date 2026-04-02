@@ -217,6 +217,9 @@ public class GenerateContentConfig
     [JsonPropertyName("responseMimeType")]
     public string? ResponseMimeType { get; set; }
 
+    [JsonPropertyName("thinkingConfig")]
+    public Dictionary<string, object?>? ThinkingConfig { get; set; }
+
     [JsonPropertyName("temperature")]
     public double? Temperature { get; set; }
 
