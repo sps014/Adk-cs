@@ -44,7 +44,7 @@ By default, the `LlmAgent` configures these processors in an optimal order. Howe
 var customAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "custom_pipeline_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     // Overriding the default pipeline with a custom sequence
     RequestProcessors = new List<BaseLlmRequestProcessor>
     {
@@ -69,7 +69,7 @@ When engaging in long-running conversational flows, the context length (token co
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "compact_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     // Keep only the most recent 2000 characters/tokens of conversational history
     ContextCompactors = [new TruncatingContextCompactor(2000)]
 });

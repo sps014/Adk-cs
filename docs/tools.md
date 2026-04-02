@@ -44,7 +44,7 @@ The source generator automatically creates a static property appended with `Tool
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "weather_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     // Use the auto-generated GetWeatherTool property
     Tools = [WeatherTools.GetWeatherTool]
 });
@@ -82,7 +82,7 @@ var toolset = new OpenAPIToolset(openApiSpec, "json");
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "api_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Toolsets = [toolset]
 });
 ```
@@ -95,14 +95,14 @@ You can wrap an existing agent as a tool. When the LLM decides it needs the sub-
 var summarizeAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "summarizer",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You summarize lengthy texts into 3 bullet points."
 });
 
 var coordinatorAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "coordinator",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Tools = [new AgentTool(summarizeAgent)]
 });
 ```

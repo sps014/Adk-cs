@@ -48,7 +48,7 @@ You can define a custom evaluator that utilizes a strict LLM judge to grade the 
 var judgeAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "judge",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You are a strict grader. Output ONLY a number between 0 and 1."
 });
 var judgeRunner = new InMemoryRunner("judge", judgeAgent);

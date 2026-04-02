@@ -37,7 +37,7 @@ var toolset = new McpToolset(stdioParams, prefix: "mcp");
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "mcp_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You have access to MCP tools. Use them to assist the user.",
     // The toolset will automatically discover all tools provided by the server
     Toolsets = [toolset] 
@@ -85,7 +85,7 @@ var toolset = new McpToolset(httpParams);
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "mcp_http_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Toolsets = [toolset]
 });
 ```

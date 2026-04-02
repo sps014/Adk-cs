@@ -12,7 +12,7 @@ Instead of directly instantiating model clients, the ADK utilizes the `LlmRegist
 
 ### Using the Model Registry (Recommended)
 
-This is the standard approach for configuring an agent. By passing a string to `ModelName`, the ADK handles resolution automatically based on standard regex rules.
+This is the standard approach for configuring an agent. By passing a string to `Model`, the ADK handles resolution automatically based on standard regex rules.
 
 ```csharp
 using GoogleAdk.Core.Agents;
@@ -20,9 +20,7 @@ using GoogleAdk.Core.Agents;
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "registry_agent",
-    // Automatically resolved to the correct Gemini implementation 
-    // by the MEAI factory via the LlmRegistry.
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "Provide helpful guidance."
 });
 ```
@@ -47,7 +45,7 @@ var agent = new LlmAgent(new LlmAgentConfig
 
 ## Fallbacks and Hierarchy
 
-In multi-agent orchestration, you do not need to configure a model for every single sub-agent. If a child agent (like a `SequentialAgent`'s sub-agent) lacks a `ModelName`, it will automatically traverse up the execution tree to find the `CanonicalModel` defined by its parent or root agent.
+In multi-agent orchestration, you do not need to configure a model for every single sub-agent. If a child agent (like a `SequentialAgent`'s sub-agent) lacks a `ModelN`, it will automatically traverse up the execution tree to find the `CanonicalModel` defined by its parent or root agent.
 
 ```csharp
 var childAgent = new LlmAgent(new LlmAgentConfig
@@ -60,7 +58,7 @@ var childAgent = new LlmAgent(new LlmAgentConfig
 var rootAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "root",
-    ModelName = "gemini-2.5-flash", // Defined here at the root
+    Model = "gemini-2.5-flash", // Defined here at the root
     Tools = [new AgentTool(childAgent)]
 });
 ```

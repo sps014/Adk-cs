@@ -50,7 +50,7 @@ AdkEnv.Load();
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "quickstart_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You are a helpful assistant. Keep answers concise."
 });
 

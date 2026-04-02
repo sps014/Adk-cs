@@ -21,7 +21,7 @@ var largeDocument = "The history of the world is vast. " + new string('A', 50000
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "cache_agent",
-    ModelName = "gemini-1.5-pro", // Caching is most valuable on large reasoning models
+    Model = "gemini-1.5-pro", // Caching is most valuable on large reasoning models
     
     // Enables the ContextCacheRequestProcessor
     ContextCacheConfig = new ContextCacheConfig
