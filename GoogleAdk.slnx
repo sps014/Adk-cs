@@ -19,6 +19,7 @@
     <Project Path="samples/GoogleAdk.Samples.FeatureFlags/GoogleAdk.Samples.FeatureFlags.csproj" />
     <Project Path="samples/GoogleAdk.Samples.EvalOptimize/GoogleAdk.Samples.EvalOptimize.csproj" />
     <Project Path="samples/GoogleAdk.Samples.Tools/GoogleAdk.Samples.Tools.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.BlenderMcp/GoogleAdk.Samples.BlenderMcp.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/GoogleAdk.Core.Abstractions/GoogleAdk.Core.Abstractions.csproj" />

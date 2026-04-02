@@ -34,6 +34,21 @@ var agent = new LlmAgent(new LlmAgentConfig
 // await toolset.DisposeAsync();
 ```
 
+## Example: Blender MCP (uvx + stdio)
+
+If you're running the Blender MCP server via `uvx`, configure the toolset like this:
+
+```csharp
+using GoogleAdk.Tools.Mcp;
+
+var blenderToolset = new McpToolset(new StdioConnectionParams
+{
+    Command = "uvx",
+    Arguments = ["-q", "blender-mcp"],
+    TimeoutMs = 60_000
+});
+```
+
 ## Example: Connecting to an HTTP/SSE MCP Server
 
 You can also connect to remote MCP servers over HTTP/SSE.
