@@ -23,12 +23,8 @@ public class GeminiLlm : MeaiLlm
         _client = client;
     }
 
-    private static readonly System.Reflection.PropertyInfo? RetrievalToolProp = typeof(GenerativeModel).GetProperty("RetrievalTool", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-    static void SetRetrievalTool(GenerativeModel obj, GenerativeAI.Types.Tool? value)
-    {
-        RetrievalToolProp?.SetValue(obj, value);
-    }
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "set_RetrievalTool")]
+    extern static void SetRetrievalTool(GenerativeModel obj, GenerativeAI.Types.Tool? value);
 
     public override async IAsyncEnumerable<LlmResponse> GenerateContentAsync(
         LlmRequest llmRequest, 
