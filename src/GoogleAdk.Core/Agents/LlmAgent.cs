@@ -509,16 +509,16 @@ public class LlmAgent : BaseAgent
             // === Postprocess: response processors + function calls ===
             await foreach (var evt in PostprocessAsync(invocationContext, llmRequest, llmResponse, modelResponseEvent, cancellationToken))
             {
-                if (evt.Partial != true)
-                {
-                    modelResponseEvent = Event.Create(e =>
-                    {
-                        e.InvocationId = invocationContext.InvocationId;
-                        e.Author = Name;
-                        e.Branch = invocationContext.Branch;
-                    });
-                }
                 yield return evt;
+
+                // Regenerate the event ID and timestamp after every yielded event
+                // to avoid ID conflicts. Matches Python: model_response_event.id = Event.new_id()
+                modelResponseEvent = Event.Create(e =>
+                {
+                    e.InvocationId = invocationContext.InvocationId;
+                    e.Author = Name;
+                    e.Branch = invocationContext.Branch;
+                });
             }
         }
     }

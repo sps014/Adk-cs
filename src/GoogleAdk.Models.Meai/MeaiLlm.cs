@@ -113,6 +113,7 @@ public class MeaiLlm : BaseLlm
                         Role = "model",
                         Parts = finalParts.Count > 0 ? finalParts : new List<Part>()
                     },
+                    Partial = false,
                     TurnComplete = true,
                     RawRepresentation = lastRaw,
                 };

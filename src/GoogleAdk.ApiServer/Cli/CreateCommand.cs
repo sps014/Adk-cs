@@ -123,8 +123,7 @@ public static class CreateCommand
               </PropertyGroup>
             
               <ItemGroup>
-                <PackageReference Include="GoogleAdk.Core" Version="*" />
-                <PackageReference Include="GoogleAdk.Models.Gemini" Version="*" />
+                <PackageReference Include="GoogleAdk" Version="*" />
               </ItemGroup>
             
             </Project>

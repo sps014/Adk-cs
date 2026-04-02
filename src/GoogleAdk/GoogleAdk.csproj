@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>GoogleAdk</RootNamespace>
+    <AssemblyName>GoogleAdk</AssemblyName>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>GoogleAdk</PackageId>
+    <Version>1.0.0-preview.1</Version>
+    <Authors>GoogleAdk contributors</Authors>
+    <Description>Agent Development Kit (ADK) for .NET — libraries, API host, tools, and Roslyn source generators in one package.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/sps014/GoogleAdk-cs</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sps014/GoogleAdk-cs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>ai;agents;gemini;adk;google</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Runs during _WalkEachTargetPerFramework before _GetPackageFiles (see NuGet.Build.Tasks.Pack.targets). -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);GoogleAdkAddBundledContentForPackage</TargetsForTfmSpecificContentInPackage>
+    <!-- BeforeTargets="Build" is too late (CoreCompile is a dependency of Build). -->
+    <CoreCompileDependsOn>BuildGoogleAdkBundledProjects;$(CoreCompileDependsOn)</CoreCompileDependsOn>
+  </PropertyGroup>
+
+  <!-- Union of PackageReference across bundled projects so the nuspec lists real third-party dependencies. -->
+  <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Google.Cloud.Storage.V1" Version="4.14.0" />
+    <PackageReference Include="Google.GenAI" Version="1.6.1" />
+    <PackageReference Include="Google_GenerativeAI.Microsoft" Version="3.6.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.1" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.0" />
+    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.28" />
+    <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.1" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Core.Abstractions\GoogleAdk.Core.Abstractions.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Models.Meai\GoogleAdk.Models.Meai.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Models.Gemini\GoogleAdk.Models.Gemini.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Core\GoogleAdk.Core.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Evaluation\GoogleAdk.Evaluation.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Optimization\GoogleAdk.Optimization.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Tools.OpenApi\GoogleAdk.Tools.OpenApi.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Tools.Mcp\GoogleAdk.Tools.Mcp.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.Sessions.EfCore\GoogleAdk.Sessions.EfCore.csproj" />
+    <_GoogleAdkBundledLibProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.ApiServer\GoogleAdk.ApiServer.csproj" />
+    <_GoogleAdkSourceGeneratorProject Include="$(MSBuildThisFileDirectory)..\GoogleAdk.SourceGenerators\GoogleAdk.SourceGenerators.csproj" />
+  </ItemGroup>
+
+  <!-- No ProjectReference: avoids fake NuGet dependencies on sibling projects in the nuspec. -->
+  <Target Name="BuildGoogleAdkBundledProjects">
+    <MSBuild Projects="@(_GoogleAdkBundledLibProject)"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)"
+             BuildInParallel="true" />
+    <MSBuild Projects="@(_GoogleAdkSourceGeneratorProject)"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=netstandard2.0" />
+  </Target>
+
+  <Target Name="GoogleAdkAddBundledContentForPackage" DependsOnTargets="Build">
+    <MSBuild Projects="@(_GoogleAdkBundledLibProject)"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)">
+      <Output TaskParameter="TargetOutputs" ItemName="_GoogleAdkBundledLibDll" />
+    </MSBuild>
+    <MSBuild Projects="@(_GoogleAdkSourceGeneratorProject)"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=netstandard2.0">
+      <Output TaskParameter="TargetOutputs" ItemName="_GoogleAdkSourceGeneratorDll" />
+    </MSBuild>
+    <Error Condition="'@(_GoogleAdkBundledLibDll)' == ''" Text="GoogleAdk pack: no bundled library outputs resolved." />
+    <Error Condition="'@(_GoogleAdkSourceGeneratorDll)' == ''" Text="GoogleAdk pack: GoogleAdk.SourceGenerators output not found." />
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_GoogleAdkBundledLibDll)">
+        <PackagePath>lib/$(TargetFramework)/%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+      <TfmSpecificPackageFile Include="@(_GoogleAdkSourceGeneratorDll)">
+        <PackagePath>analyzers/dotnet/cs/%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+</Project>
