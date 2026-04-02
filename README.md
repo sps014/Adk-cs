@@ -1,6 +1,6 @@
 # Agent Development Kit (ADK) for .NET (C#)
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
 [![NuGet](https://img.shields.io/badge/NuGet-Preview-informational)](#-installation)
 
 <html>
@@ -104,10 +104,15 @@ guidelines:
 - Then if you want to contribute code, please read
   [Code Contributing Guidelines](./CONTRIBUTING.md) to get started.
 
-## 📄 License
+## 📄 License and intellectual property
 
-This project is licensed under the Apache 2.0 License - see the
-[LICENSE](LICENSE) file for details.
+Google’s **Agent Development Kit (ADK)**—the reference product family (for example, the Python ADK), its documentation, and related Google materials—is a **copyrighted product of Google LLC** and/or its affiliates. Google retains applicable rights in that product and in the **ADK** and **Google** trademarks.
+
+**This repository** is a **.NET port**: an open-source implementation aligned with ADK-style APIs and patterns. It is **not** described here as Google’s own first-party, directly Google-copyrighted release of ADK for .NET; copyright in this port belongs to **its contributors**, who license the code under the **Apache License, Version 2.0**. See **[LICENSE.md](LICENSE.md)** for the full terms, including how upstream ADK, this port, and trademarks are distinguished.
+
+Use, reproduction, and distribution of this repository are governed by the **Apache License, Version 2.0**; it does **not** transfer ownership of Google’s ADK, Google’s trademarks, or third-party materials to you. Third-party components may be subject to separate licenses as noted in the applicable files or notices.
+
+If you contribute code, your contributions may be subject to the contributor license arrangements described in the contribution documentation. Nothing in this README is legal advice or a waiver of Google’s or any third party’s rights except as stated in **[LICENSE.md](LICENSE.md)** and applicable licenses.
 
 ## Preview
 

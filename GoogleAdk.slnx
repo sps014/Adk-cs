@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/repository/">
+    <File Path="LICENSE.md" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/a2a.md" />
     <File Path="docs/artifacts.md" />
