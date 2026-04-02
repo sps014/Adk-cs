@@ -1,73 +1,76 @@
-# Features
+# Features & Architecture
 
-The ADK provides a rich set of features for building complex agentic workflows.
+The ADK provides a robust and composable architecture designed for complex, agentic workflows. By standardizing the pipeline for interactions, developers can build logic from the ground up without rewriting boilerplate.
 
-## Agents
+## Agent Types
 
-The ADK includes several built-in agent types to handle different orchestration patterns:
+The ADK supports various built-in agent orchestration patterns that determine how a sequence of actions executes.
 
-- **`LlmAgent`**: The standard agent powered by an LLM. It handles tool calling, context management, and system instructions.
-- **`SequentialAgent`**: Runs a list of sub-agents in order, passing the output of one as the input to the next.
-- **`ParallelAgent`**: Runs multiple sub-agents concurrently and aggregates their results.
-- **`LoopAgent`**: Runs a sub-agent repeatedly until a specific condition is met or a max iteration count is reached.
+### `LlmAgent`
 
-### LlmAgent API Essentials
+The foundational agent type powered by a Large Language Model. It handles tool execution, context window management, code execution capabilities, and system instructions. 
 
-When configuring an `LlmAgent`, you use `LlmAgentConfig`:
+- Automatically processes input context.
+- Analyzes prompts to determine if a tool call is required.
+- Manages the execution context.
 
-- `Model` or `ModelName`: The LLM to use (direct instance or resolved via registry).
-- `Instruction` / `InstructionProvider`: The system prompt that guides the agent's behavior.
-- `Tools`: A list of `IBaseTool` instances the agent can call.
-- `CodeExecutor`: An optional engine (like `BuiltInCodeExecutor`) allowing the agent to write and run code.
-- `RequestProcessors` / `ResponseProcessors`: Middleware pipeline for modifying requests before they hit the LLM, or responses after they return.
+### Structural Agents (Multi-Agent Patterns)
 
-## Processors
+Instead of relying on a single monolith model, it is often more reliable to split complex problems across multiple specialized agents. 
 
-Processors allow you to hook into the LLM request/response lifecycle. The ADK includes several built-in processors:
+- **`SequentialAgent`**: Executes a list of sub-agents sequentially. The output of Agent A becomes the context input for Agent B.
+- **`ParallelAgent`**: Distributes identical context to a group of sub-agents and runs them concurrently. Once all resolve, their responses are aggregated and returned.
+- **`LoopAgent`**: Runs a sub-agent recursively in a loop until a specific condition is met, max iterations are reached, or an "escalate" tool is called.
 
-- **`InstructionsLlmRequestProcessor`**: Injects system instructions and few-shot examples.
-- **`CodeExecutionRequestProcessor`**: Configures the LLM to use code execution capabilities.
-- **`RequestConfirmationLlmRequestProcessor`**: Handles resuming tool execution after requiring user confirmation.
+> See [Orchestration (Multi-Agent)](orchestration.md) for detailed examples.
 
-### Example: Customizing the Processor Pipeline
+## Processors Pipeline
 
-You can override the default processors if you need a specialized pipeline:
+`LlmAgent` utilizes a customizable processor pipeline. This pipeline gives developers fine-grained control over how an LLM request is mutated before being dispatched to the model and how the response is handled upon return.
+
+### Built-in Processors
+
+- **`InstructionsLlmRequestProcessor`**: Injects system instructions, few-shot examples, and metadata into the system prompt.
+- **`CodeExecutionRequestProcessor`**: Triggers the capability for the agent to write and execute code.
+- **`RequestConfirmationLlmRequestProcessor`**: Pauses execution and surfaces a confirmation prompt when an agent attempts to execute a sensitive tool.
+- **`ContextCacheRequestProcessor`**: Automatically implements prompt caching to lower costs on repeated context blocks.
+- **`OutputSchemaRequestProcessor`**: Configures the LLM output to conform strictly to a predefined JSON schema.
+
+### Customizing the Pipeline
+
+By default, the `LlmAgent` configures these processors in an optimal order. However, if your use-case requires a custom middleware sequence (e.g., injecting proprietary headers or logging specific steps), you can supply your own array of `BaseLlmRequestProcessor`.
 
 ```csharp
-var agent = new LlmAgent(new LlmAgentConfig
+var customAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "custom_pipeline_agent",
     ModelName = "gemini-2.5-flash",
+    // Overriding the default pipeline with a custom sequence
     RequestProcessors = new List<BaseLlmRequestProcessor>
     {
         BasicLlmRequestProcessor.Instance,
         InstructionsLlmRequestProcessor.Instance,
+        // Your custom processor
+        new MyAuthenticationRequestProcessor(),
         ContentRequestProcessor.Instance
-        // Add your own custom processors here
     }
 });
 ```
 
 ## Context Compaction
 
-Long-running conversations can exceed the LLM's context window. Context compactors automatically reduce the history size.
+When engaging in long-running conversational flows, the context length (token count) will inevitably exceed the LLM's context window. To prevent failures and manage costs, the ADK supports **Context Compactors**, which automatically truncate or summarize conversation history.
 
-- **Token-based**: Removes older messages until the token count is under a threshold.
-- **Truncation-based**: Keeps only the most recent N messages.
-- **LLM summarizer**: Uses an LLM to summarize older messages into a single concise memory.
-
-### Example: Adding a Compactor
+- **Truncation-based**: Removes the oldest messages in the history to keep only the `N` most recent items.
+- **Token-based**: Evaluates token limits dynamically and removes history until the payload fits.
+- **Summarization-based**: Utilizes the LLM itself to read the history, summarize it, and replace the long dialogue block with the concise summary.
 
 ```csharp
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "compact_agent",
-    Model = GeminiModelFactory.Create("gemini-2.5-flash"),
-    // Keep only the most recent 2000 characters/tokens of history
+    ModelName = "gemini-2.5-flash",
+    // Keep only the most recent 2000 characters/tokens of conversational history
     ContextCompactors = [new TruncatingContextCompactor(2000)]
 });
 ```
-
-## Placeholders
-
-- Live streaming agents: _coming soon_

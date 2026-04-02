@@ -1,83 +1,62 @@
 # Tools
 
+Tools provide your agents with the ability to interact with the outside world, fetch data, and perform actions. The ADK includes built-in tools, supports dynamic tool generation via source generators, and allows custom tool implementation.
+
 ## Built-in Tools
 
-- GoogleSearchTool
-- VertexAiSearchTool (Vertex AI Search / Discovery Engine)
-- LoadMemoryTool
-- LoadArtifactsTool
-- AuthTool (credential requests)
+The ADK comes with several built-in tools ready to be used:
 
-### Tool API basics
+- **`GoogleSearchTool`**: Performs live web searches. Returns grounding metadata with search queries.
+- **`VertexAiSearchTool`**: Connects to Google Cloud Vertex AI Search (Discovery Engine) data stores.
+- **`AuthTool`**: Triggers a credential request flow for authenticating users.
+- **`AgentTool`**: Wraps an entire sub-agent as a callable tool, enabling hierarchical agent orchestration.
 
-- `BaseTool.RunAsync(args, context)` executes the tool
-- `BaseTool.ProcessLlmRequestAsync` can modify the request (function schema, etc.)
+## Source Generated Tools (Recommended)
 
-## Source Generated Tools
+The easiest and most robust way to create tools in C# is by using the ADK's source generators. By decorating a static method with `[FunctionTool]`, the ADK automatically generates the required JSON schema, parameter parsing, and execution boilerplate.
 
-The ADK uses C# source generators to automatically create `IBaseTool` instances from your static methods. This eliminates the need to manually write JSON schema boilerplate.
+### 1. Define your tools
 
-### How to use source generated tools
-
-1. Create a `public static partial class`.
-2. Add a static method decorated with `[FunctionTool]`.
-3. Add XML documentation comments to describe the tool and its parameters (the LLM uses these descriptions).
-4. The source generator automatically creates a static property named `{MethodName}Tool`.
+Create a `public static partial class` and add your methods. The XML documentation (`<summary>`, `<param>`) is parsed and injected directly into the LLM's system prompt to explain how to use the tool.
 
 ```csharp
 using GoogleAdk.Core.Abstractions.Tools;
 
-public static partial class MyTools
+public static partial class WeatherTools
 {
-    /// <summary>Gets the current weather for a city.</summary>
-    /// <param name="city">The city name</param>
+    /// <summary>Gets the current weather for a specified city.</summary>
+    /// <param name="city">The name of the city (e.g., "Seattle").</param>
+    /// <param name="units">The temperature units to use.</param>
     [FunctionTool]
-    public static object? GetWeather(string city)
+    public static object? GetWeather(string city, string units = "celsius")
     {
-        return new { city, temperature = 22, condition = "Sunny" };
+        // Your logic here
+        return new { city, temperature = 22, condition = "Sunny", units };
     }
 }
 ```
 
-You can then pass the generated tool directly to your agent:
+### 2. Use the generated tool
+
+The source generator automatically creates a static property appended with `Tool`.
 
 ```csharp
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "weather_agent",
     ModelName = "gemini-2.5-flash",
-    Tools = [MyTools.GetWeatherTool] // Auto-generated property
+    // Use the auto-generated GetWeatherTool property
+    Tools = [WeatherTools.GetWeatherTool]
 });
-```
-
-### Example: Custom Tool (Manual)
-
-If you need more control than the source generator provides, you can implement `BaseTool` manually:
-
-```csharp
-public class MyCustomTool : BaseTool
-{
-    public MyCustomTool() : base("my_tool", "Does something useful") { }
-    
-    public override FunctionDeclaration? GetDeclaration() 
-    { 
-        // Return manual schema here
-    }
-    
-    public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context) 
-    { 
-        // Implementation here
-    }
-}
 ```
 
 ## Toolsets
 
-- MCP toolset
-- OpenAPIToolset (parses OpenAPI specs into tools)
-- AgentTool for agent-as-tool composition
+Toolsets (`BaseToolset`) are dynamic collections of tools that can be resolved at runtime. They are ideal for wrapping external APIs or protocols.
 
-### Example: OpenAPIToolset
+### OpenAPIToolset
+
+Automatically generate tools from an OpenAPI/Swagger specification.
 
 ```csharp
 using GoogleAdk.Tools.OpenApi;
@@ -85,93 +64,88 @@ using GoogleAdk.Tools.OpenApi;
 var openApiSpec = """
 {
   "openapi": "3.0.0",
-  "info": { "title": "API", "version": "1.0" },
+  "info": { "title": "Pet Store API", "version": "1.0" },
   "paths": {
-    "/ping": { "get": { "operationId": "ping", "responses": { "200": { "description": "OK" } } } }
+    "/pets": { 
+      "get": { 
+        "operationId": "getPets", 
+        "responses": { "200": { "description": "OK" } } 
+      } 
+    }
   }
 }
 """;
 
+// Parse the spec and expose its operations as tools
 var toolset = new OpenAPIToolset(openApiSpec, "json");
 
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "api_agent",
     ModelName = "gemini-2.5-flash",
-    Toolsets = new List<BaseToolset> { toolset }
+    Toolsets = [toolset]
 });
 ```
 
-### Example: GoogleSearchTool
+### AgentTool (Hierarchical Orchestration)
+
+You can wrap an existing agent as a tool. When the LLM decides it needs the sub-agent's expertise, it will call the tool, passing the context to the sub-agent.
 
 ```csharp
-var agent = new LlmAgent(new LlmAgentConfig
+var summarizeAgent = new LlmAgent(new LlmAgentConfig
 {
-    Name = "search",
+    Name = "summarizer",
     ModelName = "gemini-2.5-flash",
-    Tools = [new GoogleSearchTool()]
+    Instruction = "You summarize lengthy texts into 3 bullet points."
 });
 
-// Grounding metadata is returned in the event stream:
-// foreach (var evt in runner.RunAsync(...)) {
-//     if (evt.GroundingMetadata != null) {
-//         var queries = evt.GroundingMetadata.WebSearchQueries;
-//     }
-// }
+var coordinatorAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coordinator",
+    ModelName = "gemini-2.5-flash",
+    Tools = [new AgentTool(summarizeAgent)]
+});
 ```
 
-### Example: VertexAiSearchTool
+## Custom Tools (Manual Implementation)
+
+If you need absolute control over the schema or execution logic, inherit from `BaseTool`.
 
 ```csharp
-var searchTool = new VertexAiSearchTool(
-    dataStoreId: "projects/YOUR_PROJECT/locations/global/collections/default_collection/dataStores/YOUR_DATASTORE"
-);
+using GoogleAdk.Core.Abstractions.Tools;
+using GoogleAdk.Core.Context;
+using System.Threading.Tasks;
 
-var agent = new LlmAgent(new LlmAgentConfig
+public class MyCustomTool : BaseTool
 {
-    Name = "discovery_agent",
-    ModelName = "gemini-2.5-flash",
-    Tools = [searchTool]
-});
-
-// Grounding metadata is also available in the event stream:
-// evt.GroundingMetadata?.SearchEntryPoint?.Keys;
+    public MyCustomTool() : base("calculate_tax", "Calculates tax for an amount") { }
+    
+    public override FunctionDeclaration? GetDeclaration() 
+    { 
+        // Return your manually constructed JSON schema here
+        return new FunctionDeclaration
+        {
+            Name = Name,
+            Description = Description,
+            Parameters = new Dictionary<string, object?>
+            {
+                ["type"] = "object",
+                ["properties"] = new Dictionary<string, object?>
+                {
+                    ["amount"] = new Dictionary<string, object?> { ["type"] = "number" }
+                },
+                ["required"] = new[] { "amount" }
+            }
+        };
+    }
+    
+    public override Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context) 
+    { 
+        if (args.TryGetValue("amount", out var amt) && amt is double amount)
+        {
+            return Task.FromResult<object?>(new { tax = amount * 0.2 });
+        }
+        return Task.FromResult<object?>(new { error = "Invalid amount" });
+    }
+}
 ```
-
-### Example: AuthTool
-
-```csharp
-var agent = new LlmAgent(new LlmAgentConfig
-{
-    Name = "auth",
-    ModelName = "gemini-2.5-flash",
-    Tools = [new AuthTool()]
-});
-```
-
-### Example: AgentTool
-
-```csharp
-var subAgent = new LlmAgent(new LlmAgentConfig
-{
-    Name = "sub",
-    ModelName = "gemini-2.5-flash",
-    Instruction = "Summarize."
-});
-
-var root = new LlmAgent(new LlmAgentConfig
-{
-    Name = "root",
-    ModelName = "gemini-2.5-flash",
-    Tools = [new AgentTool(subAgent)]
-});
-```
-
-## Samples
-
-- `GoogleAdk/samples/GoogleAdk.Samples.GoogleSearch/Program.cs`
-- `GoogleAdk/samples/GoogleAdk.Samples.SubAgents/Program.cs`
-
-## Placeholders
-
-- Additional built-ins: _coming soon_

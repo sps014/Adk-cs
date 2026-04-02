@@ -3,12 +3,23 @@ site_url: https://example.com/adk-dotnet
 nav:
   - Home: docs/index.md
   - Getting Started: docs/getting-started.md
+  - Running Agents: docs/running-agents.md
   - Features: docs/features.md
-  - A2A: docs/a2a.md
   - Tools: docs/tools.md
-  - Artifacts: docs/artifacts.md
-  - Models: docs/models.md
+  - Orchestration: docs/orchestration.md
+  - Streaming: docs/streaming.md
   - MCP: docs/mcp.md
+  - A2A: docs/a2a.md
+  - Code Execution: docs/code-execution.md
+  - Planning: docs/planning.md
+  - Human in the Loop: docs/human-in-the-loop.md
+  - Output Schema: docs/output-schema.md
+  - Prompt Caching: docs/caching.md
+  - Artifacts: docs/artifacts.md
+  - Plugins: docs/plugins.md
+  - Evaluation & Optimization: docs/evaluation-optimization.md
+  - Feature Flags: docs/feature-flags.md
+  - Models: docs/models.md
   - Testing: docs/testing.md
 theme:
   name: material

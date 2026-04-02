@@ -1,4 +1,26 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/a2a.md" />
+    <File Path="docs/artifacts.md" />
+    <File Path="docs/caching.md" />
+    <File Path="docs/code-execution.md" />
+    <File Path="docs/evaluation-optimization.md" />
+    <File Path="docs/feature-flags.md" />
+    <File Path="docs/features.md" />
+    <File Path="docs/getting-started.md" />
+    <File Path="docs/human-in-the-loop.md" />
+    <File Path="docs/index.md" />
+    <File Path="docs/mcp.md" />
+    <File Path="docs/models.md" />
+    <File Path="docs/orchestration.md" />
+    <File Path="docs/output-schema.md" />
+    <File Path="docs/planning.md" />
+    <File Path="docs/plugins.md" />
+    <File Path="docs/running-agents.md" />
+    <File Path="docs/streaming.md" />
+    <File Path="docs/testing.md" />
+    <File Path="docs/tools.md" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/GoogleAdk.Samples.OpenApi/GoogleAdk.Samples.OpenApi.csproj" />
     <Project Path="samples/GoogleAdk.Samples.Orchestration/GoogleAdk.Samples.Orchestration.csproj" />

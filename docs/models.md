@@ -1,42 +1,66 @@
-# Models
+# Models and the LLM Registry
 
-The ADK abstracts the underlying Large Language Model (LLM) implementation, allowing you to easily switch between different models and providers.
+The ADK heavily abstracts the underlying Large Language Model (LLM) implementation. This decoupled architecture allows you to dynamically switch between models, swap providers, or mock models entirely for testing, without modifying your agent logic.
 
 ## Supported Providers
 
-- **Gemini**: Native support via the official MEAI (Microsoft.Extensions.AI) client integration.
+- **Google Gemini**: First-class native support via the official `Microsoft.Extensions.AI` (MEAI) integration.
 
-## Model Registry
+## The Model Registry
 
-Instead of hardcoding model instances, you can use the `LlmRegistry`. This allows you to request a model by name (e.g., `"gemini-2.5-flash"`) and the registry will automatically instantiate the correct client using registered regex patterns.
+Instead of directly instantiating model clients, the ADK utilizes the `LlmRegistry`. You can simply reference a model by its string name (e.g., `"gemini-2.5-flash"`). The registry matches the string pattern and dynamically instantiates the correct client.
 
-### Example: Direct Model Instantiation
+### Using the Model Registry (Recommended)
 
-If you want to create a model directly, use the factory:
-
-```csharp
-var agent = new LlmAgent(new LlmAgentConfig
-{
-    Name = "direct_agent",
-    // Creates the model directly
-    ModelName = "gemini-2.5-flash"
-});
-```
-
-### Example: Using the Model Registry
-
-For more flexible configurations, register the defaults and use `ModelName`:
+This is the standard approach for configuring an agent. By passing a string to `ModelName`, the ADK handles resolution automatically based on standard regex rules.
 
 ```csharp
+using GoogleAdk.Core.Agents;
+
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "registry_agent",
-    // The ADK will automatically resolve this string to a Gemini model instance
-    ModelName = "gemini-2.5-flash"
+    // Automatically resolved to the correct Gemini implementation 
+    // by the MEAI factory via the LlmRegistry.
+    ModelName = "gemini-2.5-flash",
+    Instruction = "Provide helpful guidance."
 });
 ```
 
-## Placeholders
+### Direct Model Instantiation
 
-- ApigeeLlm: _coming soon_
-- BaseLlmConnection live streaming usage: _coming soon_
+If you need to configure specific underlying MEAI settings, instantiate the model directly using the factory and pass it to the `Model` property.
+
+```csharp
+using GoogleAdk.Models.Gemini;
+
+// Instantiate the Gemini model directly
+var geminiModel = GeminiModelFactory.Create("gemini-2.5-flash");
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "direct_agent",
+    Model = geminiModel,
+    Instruction = "Provide helpful guidance."
+});
+```
+
+## Fallbacks and Hierarchy
+
+In multi-agent orchestration, you do not need to configure a model for every single sub-agent. If a child agent (like a `SequentialAgent`'s sub-agent) lacks a `ModelName`, it will automatically traverse up the execution tree to find the `CanonicalModel` defined by its parent or root agent.
+
+```csharp
+var childAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "child",
+    // Model is intentionally left blank. It will inherit from the parent.
+    Instruction = "I am a child agent."
+});
+
+var rootAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "root",
+    ModelName = "gemini-2.5-flash", // Defined here at the root
+    Tools = [new AgentTool(childAgent)]
+});
+```
