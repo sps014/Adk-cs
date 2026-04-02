@@ -30,7 +30,7 @@ var builder = WebApplication.CreateBuilder(args);
 var myAgent = new LlmAgent(new LlmAgentConfig
 {
     Name = "support_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You are a highly capable support agent."
 });
 
@@ -123,7 +123,7 @@ Because `RemoteA2aAgent` implements `BaseAgent`, you can integrate it into compl
 var localCoordinator = new LlmAgent(new LlmAgentConfig
 {
     Name = "coordinator",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You manage support workflows.",
     Tools = [new AgentTool(remoteProxyAgent)] // Mounts the remote agent as a tool
 });

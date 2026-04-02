@@ -17,7 +17,7 @@ using GoogleAdk.Core.Runner;
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "code_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "Use Python code execution for complex calculations.",
     // Attach the executor
     CodeExecutor = new BuiltInCodeExecutor()

@@ -16,7 +16,7 @@ using GoogleAdk.Core.Runner;
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "planner_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "You are a highly logical and meticulous assistant.",
     
     // Inject the ReAct planner into the middleware pipeline
@@ -58,7 +58,7 @@ var builtInPlanner = new BuiltInPlanner(new Dictionary<string, object?>
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "builtin_planner_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Planner = builtInPlanner
 });
 ```

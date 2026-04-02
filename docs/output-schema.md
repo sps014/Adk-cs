@@ -25,7 +25,7 @@ public class SchemaOutput
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "schema_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     // Instruct the agent to strictly follow the schema
     Instruction = "Return a JSON response matching the schema using the set_model_response tool.",
     

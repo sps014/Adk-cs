@@ -16,7 +16,7 @@ using GoogleAdk.Core.Agents;
 var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "time_off_agent",
-    ModelName = "gemini-2.5-flash",
+    Model = "gemini-2.5-flash",
     Instruction = "Use the 'reimburse' tool for expense reimbursements.",
     Tools = [ RequireConfirmationTools.ReimburseTool ] // Requires confirmation via Security Plugin
 });
