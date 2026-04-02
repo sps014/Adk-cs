@@ -10,19 +10,25 @@
     <IsPackable>true</IsPackable>
     <PackageId>GoogleAdk</PackageId>
     <Version>1.0.0-preview.1</Version>
-    <Authors>GoogleAdk contributors</Authors>
+    <Authors>sps014</Authors>
     <Description>Agent Development Kit (ADK) for .NET — libraries, API host, tools, and Roslyn source generators in one package.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/sps014/GoogleAdk-cs</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sps014/GoogleAdk-cs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>ai;agents;gemini;adk;google</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Runs during _WalkEachTargetPerFramework before _GetPackageFiles (see NuGet.Build.Tasks.Pack.targets). -->
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);GoogleAdkAddBundledContentForPackage</TargetsForTfmSpecificContentInPackage>
-    <!-- BeforeTargets="Build" is too late (CoreCompile is a dependency of Build). -->
     <CoreCompileDependsOn>BuildGoogleAdkBundledProjects;$(CoreCompileDependsOn)</CoreCompileDependsOn>
   </PropertyGroup>
+
+  <!-- Pack targets: GoogleAdkAddBundledContentForPackage runs in _WalkEachTargetPerFramework before _GetPackageFiles. CoreCompileDependsOn ensures bundled projects build before the shim compiles. -->
+
+  <ItemGroup>
+    <!-- Parent of src: GoogleAdk/README.md -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\README.md" Link="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <!-- Union of PackageReference across bundled projects so the nuspec lists real third-party dependencies. -->
   <ItemGroup>
