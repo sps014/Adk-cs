@@ -90,9 +90,6 @@ For building, evaluating, and deploying agents, follow the docs and samples:
 ### Same Features & Familiar Interface As Other ADKs:
 
 ```csharp
-using GoogleAdk.Core.Agents;
-using GoogleAdk.Core.Tools;
-
 //Load env variables
 AdkEnv.Load();
 
