@@ -6,7 +6,6 @@ repo_name: sps014/GoogleAdk-cs
 theme:
   name: material
   features:
-    - navigation.tabs
     - navigation.sections
     - toc.integrate
     - navigation.top

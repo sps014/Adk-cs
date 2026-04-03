@@ -14,16 +14,36 @@ var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "artifact_web_agent",
     Model = "gemini-2.5-flash",
-    Instruction = "You are a summarization assistant. When asked to summarize, use the ReadTextFile tool to read a file (use 'input.txt' as a default if none is provided), summarize its contents concisely, and use the WriteTextFile tool to save the summary to a new file. You can choose the output filename yourself without asking the user.",
+    Instruction = """
+    You are a summarization assistant.
+     When asked to summarize, use the ReadTextFile tool to read a file (use 'input.txt' as a default if none is provided),
+    summarize its contents concisely, and use the WriteTextFile tool to save the summary to a new file.
+    You can choose the output filename yourself without asking the user.
+
+    NOTE: Always use the ListArtifacts tool to list the available artifacts before using the ReadTextFile tool.
+    """,
     Tools = [
                 ReadTextFileTool,
-                WriteTextFileTool
+                WriteTextFileTool,
+                ListArtifactsTool
             ]
 });
 
 await AdkServer.RunAsync(agent);
 
 
+
+/// <summary>
+/// Lists all artifact keys (filenames) for the current user and session.
+/// </summary>
+/// <param name="context">The agent context injected by the runtime</param>
+[FunctionTool]
+
+static async Task<object?> ListArtifacts(AgentContext context)
+{
+    var artifacts = await context.ListArtifactsAsync();
+    return artifacts;
+}
 
 
 /// <summary>
