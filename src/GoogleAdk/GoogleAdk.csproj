@@ -9,7 +9,7 @@
 
     <IsPackable>true</IsPackable>
     <PackageId>GoogleAdk</PackageId>
-    <Version>1.0.0-preview.1</Version>
+    <Version>1.0.0-preview.5</Version>
     <Authors>sps014</Authors>
     <Description>Agent Development Kit (ADK) for .NET — libraries, API host, tools, and Roslyn source generators in one package.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -19,6 +19,7 @@
     <PackageTags>ai;agents;gemini;adk;google</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeRefAssemblies>false</IncludeRefAssemblies>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);GoogleAdkAddBundledContentForPackage</TargetsForTfmSpecificContentInPackage>
     <CoreCompileDependsOn>BuildGoogleAdkBundledProjects;$(CoreCompileDependsOn)</CoreCompileDependsOn>
   </PropertyGroup>
