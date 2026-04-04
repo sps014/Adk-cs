@@ -3,6 +3,7 @@ using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Runner;
 using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.Abstractions.Artifacts;
+using GoogleAdk.Core.Abstractions.Memory;
 
 namespace GoogleAdk.ApiServer;
 
@@ -15,12 +16,16 @@ public class RunnerManager
     private readonly AgentLoader _agentLoader;
     private readonly BaseSessionService _sessionService;
     private readonly IBaseArtifactService? _artifactService;
+    private readonly IBaseMemoryService? _memoryService;
+    private readonly Dictionary<string, object?>? _initialState;
 
-    public RunnerManager(AgentLoader agentLoader, BaseSessionService sessionService, IBaseArtifactService? artifactService = null)
+    public RunnerManager(AgentLoader agentLoader, BaseSessionService sessionService, IBaseArtifactService? artifactService = null, IBaseMemoryService? memoryService = null, Dictionary<string, object?>? initialState = null)
     {
         _agentLoader = agentLoader;
         _sessionService = sessionService;
         _artifactService = artifactService;
+        _memoryService = memoryService;
+        _initialState = initialState;
     }
 
     public Runner GetOrCreate(string appName)
@@ -34,10 +39,14 @@ public class RunnerManager
                 Agent = agent,
                 SessionService = _sessionService,
                 ArtifactService = _artifactService,
+                MemoryService = _memoryService,
+                InitialState = _initialState
             });
         });
     }
 
     public BaseSessionService SessionService => _sessionService;
     public IBaseArtifactService? ArtifactService => _artifactService;
+    public IBaseMemoryService? MemoryService => _memoryService;
+    public Dictionary<string, object?>? InitialState => _initialState;
 }

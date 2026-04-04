@@ -4,6 +4,7 @@ using GoogleAdk.Core.Sessions;
 using Microsoft.Extensions.FileProviders;
 using System.Diagnostics;
 using GoogleAdk.Core.Abstractions.Artifacts;
+using GoogleAdk.Core.Abstractions.Memory;
 using GoogleAdk.Core.Artifacts;
 using Spectre.Console;
 
@@ -23,10 +24,12 @@ public static class AdkServer
     public static async Task RunAsync(
         BaseAgent rootAgent,
         IBaseArtifactService? artifactService = null,
+        IBaseMemoryService? memoryService = null,
         int port = 8080, 
         string host = "localhost", 
         bool showAdkWebUI = true, 
-        bool enableA2a = false)
+        bool enableA2a = false,
+        Dictionary<string, object?>? initialState = null)
     {
         var agentLoader = new AgentLoader(".");
         agentLoader.Register(rootAgent.Name, rootAgent);
@@ -38,7 +41,7 @@ public static class AdkServer
 
         builder.Services.AddSingleton(agentLoader);
         builder.Services.AddSingleton<BaseSessionService>(sessionService);
-        builder.Services.AddSingleton(new RunnerManager(agentLoader, sessionService, artifactService));
+        builder.Services.AddSingleton(new RunnerManager(agentLoader, sessionService, artifactService, memoryService, initialState));
         builder.Services.AddSingleton(new InMemoryTraceCollector());
 
         builder.Services.AddEndpointsApiExplorer();

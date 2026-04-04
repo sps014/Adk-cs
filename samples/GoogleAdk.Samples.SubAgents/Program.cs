@@ -76,7 +76,7 @@ var receptionist = new LlmAgent(new LlmAgentConfig
     Description = "Routes user requests to the appropriate specialist agent.",
     Model = "gemini-2.5-flash",
     Instruction = """
-        You are a helpful receptionist. Greet the user and determine which specialist
+        You are a helpful receptionist. Greet the user (their name is {user_name?}) and determine which specialist
         can best help them:
         - billing_agent: for invoices, payments, refunds, subscriptions
         - tech_support: for bugs, errors, technical problems
@@ -88,7 +88,12 @@ var receptionist = new LlmAgent(new LlmAgentConfig
     SubAgents = new List<BaseAgent> { billingAgent, techSupport, salesAgent },
 });
 
-var runner = new InMemoryRunner("sub-agent-transfer-sample", receptionist);
+// Set initial state for the ADK Web UI
+var initialState = new Dictionary<string, object?>
+{
+    { "user_name", "Alex" },
+    { "premium_member", true },
+    { "previous_issue_resolved", false }
+};
 
-
-await AdkServer.RunAsync(receptionist);
+await AdkServer.RunAsync(receptionist, initialState: initialState);

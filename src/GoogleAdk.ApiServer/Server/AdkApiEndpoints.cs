@@ -59,7 +59,7 @@ public static class AdkApiEndpoints
                 {
                     AppName = appName,
                     UserId = userId,
-                    State = body?.State,
+                    State = body?.State ?? (mgr.InitialState != null ? new Dictionary<string, object?>(mgr.InitialState) : null),
                 });
                 return Results.Json(session, s_jsonOptions, statusCode: 201);
             });
@@ -73,7 +73,7 @@ public static class AdkApiEndpoints
                     AppName = appName,
                     UserId = userId,
                     SessionId = sessionId,
-                    State = body?.State,
+                    State = body?.State ?? (mgr.InitialState != null ? new Dictionary<string, object?>(mgr.InitialState) : null),
                 });
                 return Results.Json(session, s_jsonOptions, statusCode: 201);
             });
