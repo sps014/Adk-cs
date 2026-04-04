@@ -49,6 +49,8 @@ nav:
     - Features Overview: features.md
     - Running Agents: running-agents.md
     - Orchestration: orchestration.md
+    - State: state.md
+    - Memory: memory.md
     - Planning: planning.md
     - Caching: caching.md
     - Streaming: streaming.md
