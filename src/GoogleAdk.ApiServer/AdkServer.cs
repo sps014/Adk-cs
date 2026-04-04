@@ -73,10 +73,14 @@ public static class AdkServer
         
         if (showSwaggerUI)
         {
-            app.UseSwagger();
+            app.UseSwagger(c=>
+            {
+                c.SerializeAsV2 = true;
+            });
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("./v1/swagger.json", "ADK Server API v1");
+                c.RoutePrefix = "swagger";
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ADK Server API v1");
             });
         }
         
