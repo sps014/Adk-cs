@@ -26,13 +26,8 @@ var agent = new LlmAgent(new LlmAgentConfig
     Tools = [GetWeatherDataTool]
 });
 
-var runner = new InMemoryRunner("ollama-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-{
-    AppName = "ollama-sample",
-    UserId = "user-1"
-});
 
+await AdkServer.RunAsync(agent);
 
 
 /// <summary>

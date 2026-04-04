@@ -23,12 +23,14 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
     private const string AttributeFullName = "GoogleAdk.Core.Abstractions.Tools.FunctionToolAttribute";
 
     private static readonly DiagnosticDescriptor MissingDocError = new DiagnosticDescriptor(
+#pragma warning disable RS2008 // Enable analyzer release tracking
         id: "ADK001",
         title: "Missing XML Documentation",
         messageFormat: "Method '{0}' is marked as [FunctionTool] but lacks an XML documentation <summary>. LLM tools require descriptions.",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+#pragma warning restore RS2008 // Enable analyzer release tracking
 
     private static readonly DiagnosticDescriptor InvalidReturnTypeError = new DiagnosticDescriptor(
 #pragma warning disable RS2008 // Enable analyzer release tracking
