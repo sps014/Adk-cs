@@ -95,7 +95,7 @@ For building, evaluating, and deploying agents, follow the docs and samples:
 ### Same Features & Familiar Interface As Other ADKs:
 
 ```csharp
-//Load env variables
+//Load env variables like GOOGLE_API_KEY
 AdkEnv.Load();
 
 var rootAgent = new LlmAgent(new LlmAgentConfig
