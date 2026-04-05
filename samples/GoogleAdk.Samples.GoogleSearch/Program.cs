@@ -34,7 +34,7 @@ var searchAgent = new LlmAgent(new LlmAgentConfig
         search capability to find accurate, up-to-date information.
         Always cite your sources and provide context for your answers.
         """,
-    Tools = new List<IBaseTool> { GoogleSearchTool.Instance },
+    Tools = new List<IBaseTool> { new GoogleSearchTool() },
 });
 
 var runner = new InMemoryRunner("google-search-sample", searchAgent);
@@ -86,7 +86,7 @@ while (true)
             }
             if (evt.GroundingMetadata.SearchEntryPoint != null)
             {
-                Console.WriteLine($"    Search Entry Point Data Keys: {string.Join(", ", evt.GroundingMetadata.SearchEntryPoint.Keys)}");
+                Console.WriteLine($"    Search Entry Point Rendered Content: {evt.GroundingMetadata.SearchEntryPoint.RenderedContent}");
             }
         }
     }

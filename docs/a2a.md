@@ -64,7 +64,7 @@ To connect to a remote agent and utilize it within your application, you map its
 ```csharp
 using GoogleAdk.Core.A2a;
 using GoogleAdk.Core.Abstractions.Events;
-using GoogleAdk.Core.Abstractions.Models;
+using GoogleAdk.Core.Abstractions.Sessions;
 using GoogleAdk.Core.Runner;
 using System;
 
@@ -92,7 +92,7 @@ var remoteProxyAgent = new RemoteA2aAgent(new RemoteA2aAgentConfig
 
 // 4. Execute the remote agent exactly as you would a local agent
 var runner = new InMemoryRunner("a2a-client-app", remoteProxyAgent);
-var session = await runner.SessionService.CreateSessionAsync(new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
 {
     AppName = "a2a-client-app",
     UserId = "user-1"

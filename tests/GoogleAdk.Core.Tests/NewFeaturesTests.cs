@@ -124,10 +124,10 @@ public class NewFeaturesTests
     {
         var tool = new TransferToAgentTool(["a", "b"]);
         var decl = tool.GetDeclaration();
-        var props = (Dictionary<string, object?>)decl!.Parameters!["properties"]!;
-        var agentName = (Dictionary<string, object?>)props["agentName"]!;
-        var enumValues = (Array)agentName["enum"]!;
-        Assert.Equal(2, enumValues.Length);
+        var props = decl!.Parameters!.Properties;
+        var agentName = props!["agentName"]!;
+        var enumValues = agentName.Enum!;
+        Assert.Equal(2, enumValues.Count);
     }
 
     [Fact]

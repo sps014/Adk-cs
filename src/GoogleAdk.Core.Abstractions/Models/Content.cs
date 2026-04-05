@@ -140,7 +140,41 @@ public class FunctionDeclaration
     public string? Description { get; set; }
 
     [JsonPropertyName("parameters")]
-    public Dictionary<string, object?>? Parameters { get; set; }
+    public Schema? Parameters { get; set; }
+}
+
+/// <summary>
+/// The Schema object allows the definition of input and output data types.
+/// </summary>
+public class Schema
+{
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    [JsonPropertyName("format")]
+    public string? Format { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("properties")]
+    public Dictionary<string, Schema>? Properties { get; set; }
+
+    [JsonPropertyName("items")]
+    public Schema? Items { get; set; }
+
+    [JsonPropertyName("enum")]
+    public List<string>? Enum { get; set; }
+
+    [JsonPropertyName("required")]
+    public List<string>? Required { get; set; }
+
+    public static implicit operator Schema?(Dictionary<string, object?>? dict)
+    {
+        if (dict == null) return null;
+        var json = System.Text.Json.JsonSerializer.Serialize(dict);
+        return System.Text.Json.JsonSerializer.Deserialize<Schema>(json);
+    }
 }
 
 /// <summary>
@@ -152,22 +186,60 @@ public class ToolDeclaration
     public List<FunctionDeclaration>? FunctionDeclarations { get; set; }
 
     [JsonPropertyName("googleSearch")]
-    public Dictionary<string, object?>? GoogleSearch { get; set; }
+    public GoogleSearchConfig? GoogleSearch { get; set; }
 
     [JsonPropertyName("googleSearchRetrieval")]
-    public Dictionary<string, object?>? GoogleSearchRetrieval { get; set; }
+    public GoogleSearchRetrievalConfig? GoogleSearchRetrieval { get; set; }
 
     [JsonPropertyName("retrieval")]
     public RetrievalConfig? Retrieval { get; set; }
 
     [JsonPropertyName("urlContext")]
-    public Dictionary<string, object?>? UrlContext { get; set; }
+    public UrlContextConfig? UrlContext { get; set; }
 
     [JsonPropertyName("enterpriseWebSearch")]
-    public Dictionary<string, object?>? EnterpriseWebSearch { get; set; }
+    public EnterpriseWebSearchConfig? EnterpriseWebSearch { get; set; }
 
     [JsonPropertyName("googleMaps")]
-    public Dictionary<string, object?>? GoogleMaps { get; set; }
+    public GoogleMapsConfig? GoogleMaps { get; set; }
+
+    [JsonPropertyName("codeExecution")]
+    public CodeExecutionConfig? CodeExecution { get; set; }
+}
+
+public class CodeExecutionConfig
+{
+}
+
+public class GoogleSearchConfig
+{
+}
+
+public class GoogleSearchRetrievalConfig
+{
+    [JsonPropertyName("dynamicRetrievalConfig")]
+    public DynamicRetrievalConfig? DynamicRetrievalConfig { get; set; }
+}
+
+public class DynamicRetrievalConfig
+{
+    [JsonPropertyName("mode")]
+    public string? Mode { get; set; }
+
+    [JsonPropertyName("dynamicThreshold")]
+    public double? DynamicThreshold { get; set; }
+}
+
+public class UrlContextConfig
+{
+}
+
+public class EnterpriseWebSearchConfig
+{
+}
+
+public class GoogleMapsConfig
+{
 }
 
 /// <summary>
@@ -326,13 +398,67 @@ public class GroundingMetadata
     public List<string>? WebSearchQueries { get; set; }
 
     [JsonPropertyName("searchEntryPoint")]
-    public Dictionary<string, object?>? SearchEntryPoint { get; set; }
+    public SearchEntryPoint? SearchEntryPoint { get; set; }
 
     [JsonPropertyName("groundingChunks")]
-    public List<Dictionary<string, object?>>? GroundingChunks { get; set; }
+    public List<GroundingChunk>? GroundingChunks { get; set; }
 
     [JsonPropertyName("groundingSupports")]
-    public List<Dictionary<string, object?>>? GroundingSupports { get; set; }
+    public List<GroundingSupport>? GroundingSupports { get; set; }
+}
+
+public class SearchEntryPoint
+{
+    [JsonPropertyName("renderedContent")]
+    public string? RenderedContent { get; set; }
+}
+
+public class GroundingChunk
+{
+    [JsonPropertyName("web")]
+    public WebGroundingChunk? Web { get; set; }
+
+    [JsonPropertyName("retrievedContext")]
+    public RetrievedContextGroundingChunk? RetrievedContext { get; set; }
+}
+
+public class WebGroundingChunk
+{
+    [JsonPropertyName("uri")]
+    public string? Uri { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+}
+
+public class RetrievedContextGroundingChunk
+{
+    [JsonPropertyName("uri")]
+    public string? Uri { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+}
+
+public class GroundingSupport
+{
+    [JsonPropertyName("segment")]
+    public Segment? Segment { get; set; }
+
+    [JsonPropertyName("groundingChunkIndices")]
+    public List<int>? GroundingChunkIndices { get; set; }
+}
+
+public class Segment
+{
+    [JsonPropertyName("startIndex")]
+    public int? StartIndex { get; set; }
+
+    [JsonPropertyName("endIndex")]
+    public int? EndIndex { get; set; }
+
+    [JsonPropertyName("text")]
+    public string? Text { get; set; }
 }
 
 /// <summary>
@@ -341,7 +467,40 @@ public class GroundingMetadata
 public class CitationMetadata
 {
     [JsonPropertyName("citations")]
-    public List<Dictionary<string, object?>>? Citations { get; set; }
+    public List<Citation>? Citations { get; set; }
+}
+
+public class Citation
+{
+    [JsonPropertyName("startIndex")]
+    public int? StartIndex { get; set; }
+
+    [JsonPropertyName("endIndex")]
+    public int? EndIndex { get; set; }
+
+    [JsonPropertyName("uri")]
+    public string? Uri { get; set; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; set; }
+
+    [JsonPropertyName("license")]
+    public string? License { get; set; }
+    
+    [JsonPropertyName("publicationDate")]
+    public DateInfo? PublicationDate { get; set; }
+}
+
+public class DateInfo
+{
+    [JsonPropertyName("year")]
+    public int? Year { get; set; }
+
+    [JsonPropertyName("month")]
+    public int? Month { get; set; }
+
+    [JsonPropertyName("day")]
+    public int? Day { get; set; }
 }
 
 /// <summary>
@@ -359,7 +518,19 @@ public class Transcription
 public class SpeechConfig
 {
     [JsonPropertyName("voiceConfig")]
-    public Dictionary<string, object?>? VoiceConfig { get; set; }
+    public VoiceConfig? VoiceConfig { get; set; }
+}
+
+public class VoiceConfig
+{
+    [JsonPropertyName("prebuiltVoiceConfig")]
+    public PrebuiltVoiceConfig? PrebuiltVoiceConfig { get; set; }
+}
+
+public class PrebuiltVoiceConfig
+{
+    [JsonPropertyName("voiceName")]
+    public string? VoiceName { get; set; }
 }
 
 /// <summary>

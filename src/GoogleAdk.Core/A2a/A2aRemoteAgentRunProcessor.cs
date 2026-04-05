@@ -117,8 +117,8 @@ internal sealed class A2aRemoteAgentRunProcessor
 
         if (evt.CitationMetadata != null)
         {
-            agg.Citations ??= new CitationMetadata { Citations = new List<Dictionary<string, object?>>() };
-            agg.Citations.Citations ??= new List<Dictionary<string, object?>>();
+            agg.Citations ??= new CitationMetadata { Citations = new List<Citation>() };
+            agg.Citations.Citations ??= new List<Citation>();
             if (evt.CitationMetadata.Citations != null)
                 agg.Citations.Citations.AddRange(evt.CitationMetadata.Citations);
         }

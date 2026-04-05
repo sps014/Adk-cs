@@ -8,8 +8,6 @@ namespace GoogleAdk.Core.Tools;
 /// </summary>
 public class LoadArtifactsTool : BaseTool
 {
-    public static readonly LoadArtifactsTool Instance = new();
-
     public LoadArtifactsTool()
         : base("load_artifacts",
             "Loads artifacts into the session for this request.\n\n" +

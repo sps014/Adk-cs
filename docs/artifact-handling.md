@@ -98,7 +98,7 @@ var agent = new LlmAgent(new LlmAgentConfig
 {
     Name = "artifact_reader",
     Model = "gemini-2.5-flash",
-    Tools = [LoadArtifactsTool.Instance]
+    Tools = [new LoadArtifactsTool()]
 });
 ```
 

@@ -11,8 +11,6 @@ namespace GoogleAdk.Core.Tools;
 /// </summary>
 public class GoogleSearchTool : BaseTool
 {
-    public static readonly GoogleSearchTool Instance = new();
-
     public GoogleSearchTool()
         : base("google_search", "Google Search Tool") { }
 
@@ -30,7 +28,7 @@ public class GoogleSearchTool : BaseTool
         // Add googleSearch tool declaration to config
         llmRequest.Config.Tools.Add(new ToolDeclaration
         {
-            GoogleSearch = new Dictionary<string, object?>()
+            GoogleSearch = new GoogleSearchConfig()
         });
 
         return Task.CompletedTask;
