@@ -67,14 +67,14 @@ public class NewFeaturesTests
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "builtin",
-            Planner = new BuiltInPlanner(new Dictionary<string, object?> { ["mode"] = "fast" })
+            Planner = new BuiltInPlanner(new ThinkingConfig { ThinkingBudget = 100 })
         });
         var context = CreateInvocationContext(agent);
         var request = new LlmRequest();
 
         await foreach (var _ in NlPlanningRequestProcessor.Instance.RunAsync(context, request)) { }
 
-        Assert.Equal("fast", request.Config?.ThinkingConfig?["mode"]);
+        Assert.Equal(100, request.Config?.ThinkingConfig?.ThinkingBudget);
     }
 
     [Fact]

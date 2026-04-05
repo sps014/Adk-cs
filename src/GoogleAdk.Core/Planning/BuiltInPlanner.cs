@@ -9,9 +9,9 @@ namespace GoogleAdk.Core.Planning;
 /// </summary>
 public sealed class BuiltInPlanner : IPlanner
 {
-    public Dictionary<string, object?>? ThinkingConfig { get; }
+    public ThinkingConfig? ThinkingConfig { get; }
 
-    public BuiltInPlanner(Dictionary<string, object?>? thinkingConfig = null)
+    public BuiltInPlanner(ThinkingConfig? thinkingConfig = null)
     {
         ThinkingConfig = thinkingConfig;
     }
