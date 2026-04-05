@@ -18,6 +18,101 @@ The ADK comes with several built-in tools ready to be used:
 - **`ApiHubTool`**: Search and discover enterprise APIs in Google Cloud API Hub.
 - **`VertexAiRagRetrievalTool`**: Execute RAG retrieval queries using Vertex AI Search corpora and data stores.
 
+### Using Built-in Cloud Tools
+
+You can provide your agent with access to Google Cloud systems by instantiating these tools and adding them to the agent's configuration. The LLM will automatically understand the tool's required parameters (e.g., `projectId`, `instanceId`, `query`) and invoke them when necessary.
+
+#### BigQuery
+
+The BigQuery tools allow the LLM to explore and query datasets.
+- **`BigQueryMetadataTool`**: Retrieves metadata for datasets, tables, schemas, and descriptions. Requires `projectId` (passed by the LLM). Optional: `datasetId`, `tableId`.
+- **`BigQueryQueryTool`**: Executes SQL queries against BigQuery. Requires `projectId` and `query` (both determined and passed by the LLM).
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "bq_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a data analyst. Explore the dataset and answer questions.",
+    Tools = [new BigQueryQueryTool(), new BigQueryMetadataTool()]
+});
+```
+
+#### Cloud Spanner
+
+The **`SpannerQueryTool`** allows the LLM to execute SQL queries on a Spanner database. It requires `projectId`, `instanceId`, `databaseId`, and `query`.
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "spanner_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a database admin. Query Spanner to check user counts. Use instance 'prod-instance' and database 'main-db'.",
+    Tools = [new SpannerQueryTool()]
+});
+```
+
+#### Cloud Bigtable
+
+The **`BigtableQueryTool`** reads rows and row ranges from Bigtable. It requires `projectId`, `instanceId`, `tableId`. Optional filters: `rowKey`, `rowPrefix`, and `limit`.
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "bigtable_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a data explorer. Find user profiles in Bigtable.",
+    Tools = [new BigtableQueryTool()]
+});
+```
+
+#### Cloud Pub/Sub
+
+The **`PubSubMessageTool`** publishes messages to Pub/Sub topics. It requires `projectId`, `topicId`, and `message`.
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "pubsub_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are an event emitter. If the user asks to trigger a build, publish a message to the 'builds' topic.",
+    Tools = [new PubSubMessageTool()]
+});
+```
+
+#### Google API Discovery & API Hub
+
+- **`GoogleApiTool`**: Dynamically calls Google Cloud APIs using the Discovery API. Requires `apiName` and `apiVersion`.
+- **`ApiHubTool`**: Searches and discovers enterprise APIs registered in Google Cloud API Hub. Requires `projectId` and `location`.
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "discovery_agent",
+    Model = "gemini-2.5-flash",
+    Tools = [new GoogleApiTool(), new ApiHubTool()]
+});
+```
+
+#### Vertex AI RAG Retrieval
+
+The **`VertexAiRagRetrievalTool`** integrates directly with Vertex AI Search (Discovery Engine) data stores or corpora for Retrieval-Augmented Generation (RAG). Note that this maps to a built-in retrieval configuration rather than a function call.
+
+```csharp
+var ragTool = new VertexAiRagRetrievalTool(
+    ragResources: [
+        new VertexAiSearchDataStoreSpec { DataStore = "projects/my-project/locations/global/collections/default_collection/dataStores/my-docs" }
+    ]
+);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "rag_agent",
+    Model = "gemini-2.5-flash",
+    Tools = [ragTool]
+});
+```
+
 ## Source Generated Tools (Recommended)
 
 The easiest and most robust way to create tools in C# is by using the ADK's source generators. By decorating a static method with `[FunctionTool]`, the ADK automatically generates the required JSON schema, parameter parsing, and execution boilerplate.

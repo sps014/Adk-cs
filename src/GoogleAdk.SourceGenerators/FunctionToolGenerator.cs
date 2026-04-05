@@ -112,8 +112,8 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
                 requireConfirmation = rc;
         }
 
-        // Tool name: attribute override or PascalCase → snake_case
-        string toolName = nameOverride ?? ToSnakeCase(method.Name);
+        // Tool name: attribute override or keep the method name (preserve casing)
+        string toolName = nameOverride ?? method.Name;
 
         // Return type validation (must return a value, not void or Task)
         if (IsInvalidReturnType(method))
@@ -588,25 +588,6 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
-
-    private static string ToSnakeCase(string name)
-    {
-        var sb = new StringBuilder();
-        for (int i = 0; i < name.Length; i++)
-        {
-            var c = name[i];
-            if (char.IsUpper(c))
-            {
-                if (i > 0) sb.Append('_');
-                sb.Append(char.ToLowerInvariant(c));
-            }
-            else
-            {
-                sb.Append(c);
-            }
-        }
-        return sb.ToString();
-    }
 
     /// <summary>
     /// Keeps the method name as-is (already PascalCase) for property naming.
