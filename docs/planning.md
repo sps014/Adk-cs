@@ -50,9 +50,9 @@ For models that natively support specific "thinking" mechanisms directly via the
 
 ```csharp
 // Configures the LLM provider's native "thinking" mechanism (e.g., high-reasoning mode)
-var builtInPlanner = new BuiltInPlanner(new Dictionary<string, object?> 
+var builtInPlanner = new BuiltInPlanner(new ThinkingConfig 
 { 
-    ["mode"] = "fast" 
+    ThinkingBudget = 1024
 });
 
 var agent = new LlmAgent(new LlmAgentConfig

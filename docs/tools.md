@@ -229,14 +229,14 @@ public class MyCustomTool : BaseTool
         {
             Name = Name,
             Description = Description,
-            Parameters = new Dictionary<string, object?>
+            Parameters = new Schema
             {
-                ["type"] = "object",
-                ["properties"] = new Dictionary<string, object?>
+                Type = "object",
+                Properties = new Dictionary<string, Schema>
                 {
-                    ["amount"] = new Dictionary<string, object?> { ["type"] = "number" }
+                    ["amount"] = new Schema { Type = "number" }
                 },
-                ["required"] = new[] { "amount" }
+                Required = new List<string> { "amount" }
             }
         };
     }

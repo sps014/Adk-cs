@@ -9,8 +9,6 @@ namespace GoogleAdk.Core.Tools;
 /// </summary>
 public class LoadMemoryTool : BaseTool
 {
-    public static readonly LoadMemoryTool Instance = new();
-
     public LoadMemoryTool()
         : base("load_memory", "Loads the memory for the current user.\n\nNOTE: Currently this tool only uses text part from the memory.") { }
 

@@ -91,20 +91,32 @@ public class GeminiLlm : MeaiLlm
                     resp.GroundingMetadata = new GoogleAdk.Core.Abstractions.Models.GroundingMetadata
                     {
                         WebSearchQueries = gm.WebSearchQueries,
-                        SearchEntryPoint = gm.SearchEntryPoint == null ? null : new Dictionary<string, object?>
+                        SearchEntryPoint = gm.SearchEntryPoint == null ? null : new GoogleAdk.Core.Abstractions.Models.SearchEntryPoint
                         {
-                            { "renderedContent", gm.SearchEntryPoint.RenderedContent }
+                            RenderedContent = gm.SearchEntryPoint.RenderedContent
                         },
-                        GroundingChunks = gm.GroundingChunks?.Select(c => new Dictionary<string, object?>
+                        GroundingChunks = gm.GroundingChunks?.Select(c => new GoogleAdk.Core.Abstractions.Models.GroundingChunk
                         {
-                            { "web", c.Web },
-                            { "retrievedContext", c.RetrievedContext }
+                            Web = c.Web == null ? null : new GoogleAdk.Core.Abstractions.Models.WebGroundingChunk
+                            {
+                                Uri = c.Web.Uri,
+                                Title = c.Web.Title
+                            },
+                            RetrievedContext = c.RetrievedContext == null ? null : new GoogleAdk.Core.Abstractions.Models.RetrievedContextGroundingChunk
+                            {
+                                Uri = c.RetrievedContext.Uri,
+                                Title = c.RetrievedContext.Title
+                            }
                         }).ToList(),
-                        GroundingSupports = gm.GroundingSupports?.Select(s => new Dictionary<string, object?>
+                        GroundingSupports = gm.GroundingSupports?.Select(s => new GoogleAdk.Core.Abstractions.Models.GroundingSupport
                         {
-                            { "segment", s.Segment },
-                            { "groundingChunkIndices", s.GroundingChunkIndices },
-                            { "confidenceScores", s.ConfidenceScores }
+                            Segment = s.Segment == null ? null : new GoogleAdk.Core.Abstractions.Models.Segment
+                            {
+                                StartIndex = s.Segment.StartIndex,
+                                EndIndex = s.Segment.EndIndex,
+                                Text = s.Segment.Text
+                            },
+                            GroundingChunkIndices = s.GroundingChunkIndices?.ToList()
                         }).ToList()
                     };
                 }

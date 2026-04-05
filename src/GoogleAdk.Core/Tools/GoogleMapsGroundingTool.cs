@@ -20,7 +20,7 @@ public sealed class GoogleMapsGroundingTool : BaseTool
         llmRequest.Config.Tools ??= new List<ToolDeclaration>();
         llmRequest.Config.Tools.Add(new ToolDeclaration
         {
-            GoogleMaps = new Dictionary<string, object?>()
+            GoogleMaps = new GoogleMapsConfig()
         });
         return Task.CompletedTask;
     }

@@ -36,7 +36,7 @@ public class BuiltInCodeExecutor : BaseCodeExecutor
         llmRequest.Config.Tools.Add(new ToolDeclaration
         {
             // Signal to the model API that code execution is enabled
-            GoogleSearch = new Dictionary<string, object?> { ["codeExecution"] = new { } }
+            CodeExecution = new CodeExecutionConfig()
         });
     }
 

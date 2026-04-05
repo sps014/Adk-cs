@@ -48,7 +48,7 @@ public class ToolTests
     public async Task ExitLoopTool_SetsEscalate()
     {
         var context = CreateToolContext();
-        await ExitLoopTool.Instance.RunAsync(new Dictionary<string, object?>(), context);
+        await new ExitLoopTool().RunAsync(new Dictionary<string, object?>(), context);
 
         Assert.True(context.EventActions.Escalate);
         Assert.True(context.EventActions.SkipSummarization);
@@ -57,7 +57,7 @@ public class ToolTests
     [Fact]
     public void GoogleSearchTool_HasCorrectName()
     {
-        Assert.Equal("google_search", GoogleSearchTool.Instance.Name);
+        Assert.Equal("google_search", new GoogleSearchTool().Name);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class ToolTests
         var context = CreateToolContext();
         var request = new LlmRequest();
 
-        await GoogleSearchTool.Instance.ProcessLlmRequestAsync(context, request);
+        await new GoogleSearchTool().ProcessLlmRequestAsync(context, request);
 
         Assert.NotNull(request.Config?.Tools);
         Assert.Single(request.Config!.Tools!);

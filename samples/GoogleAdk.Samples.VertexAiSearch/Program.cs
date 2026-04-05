@@ -15,7 +15,13 @@ Console.WriteLine("==> Demo: Vertex AI Search Tool\n");
 
 var projectId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_PROJECT");
 var location = "global";
-var datastoreId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_DATASTORE") ;
+var datastoreId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_DATASTORE");
+
+if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(datastoreId))
+{
+    Console.WriteLine("Error: GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_DATASTORE environment variables must be set to run this sample.");
+    return;
+}
 
 var dataStoreId = $"projects/{projectId}/locations/{location}/collections/default_collection/dataStores/{datastoreId}";
 
@@ -82,7 +88,7 @@ try
         }
         if (finalGrounding.SearchEntryPoint != null)
         {
-            Console.WriteLine($"- Search Entry Point Data Keys: {string.Join(", ", finalGrounding.SearchEntryPoint.Keys)}");
+            Console.WriteLine($"- Search Entry Point Rendered Content: {finalGrounding.SearchEntryPoint.RenderedContent}");
         }
     }
 }

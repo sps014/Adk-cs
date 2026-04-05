@@ -47,7 +47,7 @@ var techNewsAgent = new LlmAgent(new LlmAgentConfig
         Return a summary of 5-7 news items with headlines and brief descriptions.
         """,
     OutputKey = "tech_news_data",
-    Tools = new List<IBaseTool> { GoogleSearchTool.Instance },
+    Tools = new List<IBaseTool> { new GoogleSearchTool() },
 });
 
 var sportsNewsAgent = new LlmAgent(new LlmAgentConfig
@@ -61,7 +61,7 @@ var sportsNewsAgent = new LlmAgent(new LlmAgentConfig
         Return a summary of 5-7 news items with headlines and brief descriptions.
         """,
     OutputKey = "sports_news_data",
-    Tools = new List<IBaseTool> { GoogleSearchTool.Instance },
+    Tools = new List<IBaseTool> { new GoogleSearchTool() },
 });
 
 var parallelNews = new ParallelAgent(new BaseAgentConfig

@@ -9,8 +9,6 @@ namespace GoogleAdk.Core.Tools;
 /// </summary>
 public class PreloadMemoryTool : BaseTool
 {
-    public static readonly PreloadMemoryTool Instance = new();
-
     public PreloadMemoryTool()
         : base("preload_memory", "preload_memory") { }
 

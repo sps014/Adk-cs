@@ -73,11 +73,11 @@ public class OpenApiToolsetTests
         Assert.Equal("Get post by ID", decl.Description);
         Assert.NotNull(decl.Parameters);
 
-        var required = decl.Parameters["required"] as List<string>;
+        var required = decl.Parameters.Required;
         Assert.NotNull(required);
         Assert.Contains("id", required);
 
-        var properties = decl.Parameters["properties"] as Dictionary<string, object?>;
+        var properties = decl.Parameters.Properties;
         Assert.NotNull(properties);
         Assert.True(properties.ContainsKey("id"));
     }

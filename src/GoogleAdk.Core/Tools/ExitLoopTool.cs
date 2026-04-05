@@ -10,8 +10,6 @@ namespace GoogleAdk.Core.Tools;
 /// </summary>
 public class ExitLoopTool : BaseTool
 {
-    public static readonly ExitLoopTool Instance = new();
-
     public ExitLoopTool()
         : base("exit_loop", "Exits the loop.\n\nCall this function only when you are instructed to do so.") { }
 
