@@ -40,7 +40,7 @@ public class ToolTests
 
         var decl = tool.GetDeclaration();
         Assert.NotNull(decl);
-        Assert.Equal("test_tool", decl!.Name);
+        Assert.Equal("TestTool", decl!.Name);
         Assert.Equal("Test tool.", decl.Description);
     }
 
@@ -79,6 +79,6 @@ public class ToolTests
         var tool = GeneratedTools.GreetTool;
 
         var decl = tool.GetDeclaration();
-        Assert.Equal("greet", decl!.Name);
+        Assert.Equal("Greet", decl!.Name);
     }
 }
