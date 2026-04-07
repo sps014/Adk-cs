@@ -11,7 +11,8 @@ public class LoadArtifactsTool : BaseTool
     public LoadArtifactsTool()
         : base("load_artifacts",
             "Loads artifacts into the session for this request.\n\n" +
-            "NOTE: Call when you need access to artifacts (for example, uploads saved by the web UI).") { }
+            "NOTE: Call when you need access to artifacts (for example, uploads saved by the web UI).")
+    { }
 
     public override FunctionDeclaration? GetDeclaration()
         => new FunctionDeclaration

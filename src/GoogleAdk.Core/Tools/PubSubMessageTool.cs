@@ -38,7 +38,7 @@ public sealed class PubSubMessageTool : BaseTool
 
             // Publish message
             var messageId = await publisher.PublishAsync(pubsubMessage);
-            
+
             // Shutdown publisher gracefully
             await publisher.ShutdownAsync(TimeSpan.FromSeconds(15));
 

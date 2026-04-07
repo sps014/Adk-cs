@@ -24,7 +24,7 @@ public sealed class DiscoveryEngineSearchTool : BaseTool
         Datastore = datastore;
         Engine = engine;
         _servingConfig = $"{datastore ?? engine}/servingConfigs/default_config";
-        
+
         _searchServiceClient = SearchServiceClient.Create();
     }
 

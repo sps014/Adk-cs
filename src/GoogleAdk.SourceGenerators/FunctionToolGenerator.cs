@@ -54,7 +54,7 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-        #pragma warning restore RS2008 // Enable analyzer release tracking
+#pragma warning restore RS2008 // Enable analyzer release tracking
 
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -118,8 +118,8 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
         // Return type validation (must return a value, not void or Task)
         if (IsInvalidReturnType(method))
         {
-            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation() 
-                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation() 
+            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation()
+                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation()
                            ?? ctx.TargetNode.GetLocation();
             var returnType = method.ReturnType.ToDisplayString();
             var diag = Diagnostic.Create(InvalidReturnTypeError, location, method.Name, returnType);
@@ -192,8 +192,8 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
             p.Type.ToDisplayString() == "GoogleAdk.Core.Agents.AgentContext");
 
         // Containing type info
-        string containingNamespace = method.ContainingType?.ContainingNamespace?.IsGlobalNamespace == true 
-            ? "" 
+        string containingNamespace = method.ContainingType?.ContainingNamespace?.IsGlobalNamespace == true
+            ? ""
             : method.ContainingType?.ContainingNamespace?.ToDisplayString() ?? "";
         string containingTypeName = method.ContainingType?.Name ?? "";
         bool isContainingTypeStatic = method.ContainingType?.IsStatic ?? false;
@@ -205,7 +205,7 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
         if (isLocalFunction)
         {
             var localSyntax = (LocalFunctionStatementSyntax)ctx.TargetNode;
-            
+
             string modifiers = "internal static";
             if (isAsync) modifiers += " async";
 
@@ -214,7 +214,7 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
             string typeParameters = localSyntax.TypeParameterList?.ToString() ?? "";
             string paramList = localSyntax.ParameterList.ToString();
             string body = localSyntax.Body?.ToFullString() ?? localSyntax.ExpressionBody?.ToFullString() + ";";
-            
+
             localFunctionSource = $"{modifiers} {retType} {identifier}{typeParameters}{paramList}\n{body}";
 
             usings = ctx.TargetNode.SyntaxTree.GetRoot()
@@ -222,7 +222,7 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
                 .OfType<UsingDirectiveSyntax>()
                 .Select(u => u.ToFullString())
                 .ToList();
-            
+
             containingTypeName = "Program";
             isContainingTypeStatic = false;
         }
@@ -252,8 +252,8 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
 
         if (requireConfirmation && !hasContext)
         {
-            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation() 
-                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation() 
+            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation()
+                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation()
                            ?? ctx.TargetNode.GetLocation();
             var diag = Diagnostic.Create(RequireConfirmationNeedsContextError, location, method.Name);
             return new ExtractionResult(null, ImmutableArray.Create(diag));
@@ -261,8 +261,8 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
 
         if (string.IsNullOrWhiteSpace(description))
         {
-            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation() 
-                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation() 
+            var location = (ctx.TargetNode as MethodDeclarationSyntax)?.Identifier.GetLocation()
+                           ?? (ctx.TargetNode as LocalFunctionStatementSyntax)?.Identifier.GetLocation()
                            ?? ctx.TargetNode.GetLocation();
             var diag = Diagnostic.Create(MissingDocError, location, method.Name);
             return new ExtractionResult(model, ImmutableArray.Create(diag));
@@ -311,13 +311,13 @@ public sealed class FunctionToolGenerator : IIncrementalGenerator
             sb.AppendLine("using System.Collections.Generic;");
             sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine();
-            
+
             var allUsings = group.SelectMany(t => t.Usings)
                 .Select(u => u.Trim())
-                .Where(u => u != "using GoogleAdk.Core.Tools;" && 
-                            u != "using GoogleAdk.Core.Agents;" && 
-                            u != "using GoogleAdk.Core.Abstractions.Tools;" && 
-                            u != "using System.Collections.Generic;" && 
+                .Where(u => u != "using GoogleAdk.Core.Tools;" &&
+                            u != "using GoogleAdk.Core.Agents;" &&
+                            u != "using GoogleAdk.Core.Abstractions.Tools;" &&
+                            u != "using System.Collections.Generic;" &&
                             u != "using System.Threading.Tasks;")
                 .Distinct()
                 .ToList();

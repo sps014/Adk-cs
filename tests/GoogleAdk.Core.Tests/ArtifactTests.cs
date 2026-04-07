@@ -15,7 +15,9 @@ public class ArtifactTests
 
         var version = await service.SaveArtifactAsync(new SaveArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "notes.txt",
             Artifact = new Part { Text = "Hello world" }
         });
@@ -24,7 +26,9 @@ public class ArtifactTests
 
         var loaded = await service.LoadArtifactAsync(new LoadArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "notes.txt"
         });
 
@@ -38,7 +42,9 @@ public class ArtifactTests
         var service = new InMemoryArtifactService();
         var req = new SaveArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "doc.txt",
             Artifact = new Part { Text = "v0" }
         };
@@ -52,14 +58,18 @@ public class ArtifactTests
 
         var latest = await service.LoadArtifactAsync(new LoadArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "doc.txt"
         });
         Assert.Equal("v1", latest!.Text);
 
         var first = await service.LoadArtifactAsync(new LoadArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "doc.txt",
             Version = 0
         });
@@ -73,18 +83,26 @@ public class ArtifactTests
 
         await service.SaveArtifactAsync(new SaveArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
-            Filename = "a.txt", Artifact = new Part { Text = "a" }
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
+            Filename = "a.txt",
+            Artifact = new Part { Text = "a" }
         });
         await service.SaveArtifactAsync(new SaveArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
-            Filename = "b.txt", Artifact = new Part { Text = "b" }
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
+            Filename = "b.txt",
+            Artifact = new Part { Text = "b" }
         });
 
         var keys = await service.ListArtifactKeysAsync(new ListArtifactKeysRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1"
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1"
         });
 
         Assert.Equal(2, keys.Count);
@@ -99,19 +117,26 @@ public class ArtifactTests
 
         await service.SaveArtifactAsync(new SaveArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
-            Filename = "temp.txt", Artifact = new Part { Text = "temp" }
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
+            Filename = "temp.txt",
+            Artifact = new Part { Text = "temp" }
         });
 
         await service.DeleteArtifactAsync(new DeleteArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "temp.txt"
         });
 
         var loaded = await service.LoadArtifactAsync(new LoadArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "temp.txt"
         });
 
@@ -127,14 +152,19 @@ public class ArtifactTests
         {
             await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "doc.txt", Artifact = new Part { Text = $"v{i}" }
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "doc.txt",
+                Artifact = new Part { Text = $"v{i}" }
             });
         }
 
         var versions = await service.ListVersionsAsync(new ListVersionsRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "doc.txt"
         });
 
@@ -148,7 +178,9 @@ public class ArtifactTests
 
         var loaded = await service.LoadArtifactAsync(new LoadArtifactRequest
         {
-            AppName = "app", UserId = "u1", SessionId = "s1",
+            AppName = "app",
+            UserId = "u1",
+            SessionId = "s1",
             Filename = "missing.txt"
         });
 
@@ -167,7 +199,9 @@ public class ArtifactTests
 
             var version = await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "report.txt",
                 Artifact = new Part { Text = "Quarterly report" }
             });
@@ -176,7 +210,9 @@ public class ArtifactTests
 
             var loaded = await service.LoadArtifactAsync(new LoadArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "report.txt"
             });
 
@@ -201,7 +237,9 @@ public class ArtifactTests
             var data = new byte[] { 0x89, 0x50, 0x4E, 0x47 };
             var version = await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "image.png",
                 Artifact = new Part
                 {
@@ -217,7 +255,9 @@ public class ArtifactTests
 
             var loaded = await service.LoadArtifactAsync(new LoadArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "image.png"
             });
 
@@ -242,32 +282,45 @@ public class ArtifactTests
 
             await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "doc.txt", Artifact = new Part { Text = "v0" }
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "doc.txt",
+                Artifact = new Part { Text = "v0" }
             });
             await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "doc.txt", Artifact = new Part { Text = "v1" }
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "doc.txt",
+                Artifact = new Part { Text = "v1" }
             });
 
             var latest = await service.LoadArtifactAsync(new LoadArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "doc.txt"
             });
             Assert.Equal("v1", latest!.Text);
 
             var first = await service.LoadArtifactAsync(new LoadArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "doc.txt", Version = 0
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "doc.txt",
+                Version = 0
             });
             Assert.Equal("v0", first!.Text);
 
             var versions = await service.ListVersionsAsync(new ListVersionsRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
                 Filename = "doc.txt"
             });
             Assert.Equal(new List<int> { 0, 1 }, versions);
@@ -289,18 +342,26 @@ public class ArtifactTests
 
             await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "a.txt", Artifact = new Part { Text = "a" }
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "a.txt",
+                Artifact = new Part { Text = "a" }
             });
             await service.SaveArtifactAsync(new SaveArtifactRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1",
-                Filename = "b.txt", Artifact = new Part { Text = "b" }
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1",
+                Filename = "b.txt",
+                Artifact = new Part { Text = "b" }
             });
 
             var keys = await service.ListArtifactKeysAsync(new ListArtifactKeysRequest
             {
-                AppName = "app", UserId = "u1", SessionId = "s1"
+                AppName = "app",
+                UserId = "u1",
+                SessionId = "s1"
             });
 
             Assert.Equal(2, keys.Count);

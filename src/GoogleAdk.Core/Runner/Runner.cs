@@ -148,7 +148,7 @@ public class Runner
                 e.Content = newMessage;
                 if (stateDelta != null)
                 {
-                    e.Actions = EventActions.Create(a => 
+                    e.Actions = EventActions.Create(a =>
                     {
                         a.StateDelta = stateDelta;
                     });

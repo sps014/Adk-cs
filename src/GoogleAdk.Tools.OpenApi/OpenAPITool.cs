@@ -56,7 +56,7 @@ public class OpenAPITool : BaseTool
             {
                 ["type"] = GetJsonSchemaType(param.Schema)
             };
-            
+
             if (!string.IsNullOrEmpty(param.Description))
             {
                 paramSchema["description"] = param.Description;
@@ -182,7 +182,7 @@ public class OpenAPITool : BaseTool
                 // single value body
                 requestMessage.Content = new StringContent(JsonSerializer.Serialize(val), System.Text.Encoding.UTF8, "application/json");
             }
-            
+
             if (bodyArgs.Count > 0)
             {
                 requestMessage.Content = new StringContent(JsonSerializer.Serialize(bodyArgs), System.Text.Encoding.UTF8, "application/json");

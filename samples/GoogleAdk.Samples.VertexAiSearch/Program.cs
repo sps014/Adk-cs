@@ -40,7 +40,7 @@ Console.WriteLine($"Agent configured with tool: {vertexSearchTool.Name}");
 Console.WriteLine($"DataStore ID: {vertexSearchTool.DataStoreId}\n");
 
 
-if(args.Contains("--web"))
+if (args.Contains("--web"))
 {
     await AdkServer.RunAsync(agent);
     return;
@@ -78,7 +78,7 @@ try
         }
     }
     Console.WriteLine();
-    
+
     if (finalGrounding != null)
     {
         Console.WriteLine("\n[Grounding Metadata]");

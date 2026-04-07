@@ -53,10 +53,10 @@ var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRe
 var userMessage = new Content { Role = "user", Parts = [new Part { Text = "Hi" }] };
 
 await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-    {
-        if (evt.Actions.RenderUiWidgets.Count > 0)
-            Console.WriteLine($"UI Widgets: {evt.Actions.RenderUiWidgets.Count}");
-    }
+{
+    if (evt.Actions.RenderUiWidgets.Count > 0)
+        Console.WriteLine($"UI Widgets: {evt.Actions.RenderUiWidgets.Count}");
+}
 
 
 Console.WriteLine("\n=== Feature Flags Sample Complete ===");

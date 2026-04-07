@@ -25,7 +25,7 @@ public sealed class BigQueryQueryTool : BaseTool
         {
             var client = await BigQueryClient.CreateAsync(projectId);
             var results = await client.ExecuteQueryAsync(query, parameters: null);
-            
+
             var rows = new List<Dictionary<string, object?>>();
             foreach (var row in results)
             {

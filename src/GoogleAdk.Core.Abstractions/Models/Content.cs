@@ -507,7 +507,7 @@ public class Citation
 
     [JsonPropertyName("license")]
     public string? License { get; set; }
-    
+
     [JsonPropertyName("publicationDate")]
     public DateInfo? PublicationDate { get; set; }
 }

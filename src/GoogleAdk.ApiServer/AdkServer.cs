@@ -28,9 +28,9 @@ public static class AdkServer
         BaseAgent rootAgent,
         IBaseArtifactService? artifactService = null,
         IBaseMemoryService? memoryService = null,
-        int port = 8080, 
-        string host = "localhost", 
-        bool showAdkWebUI = true, 
+        int port = 8080,
+        string host = "localhost",
+        bool showAdkWebUI = true,
         bool showSwaggerUI = true,
         bool enableA2a = false,
         Dictionary<string, object?>? initialState = null,
@@ -70,10 +70,10 @@ public static class AdkServer
         });
 
         var app = builder.Build();
-        
+
         if (showSwaggerUI)
         {
-            app.UseSwagger(c=>
+            app.UseSwagger(c =>
             {
                 c.SerializeAsV2 = true;
             });
@@ -83,7 +83,7 @@ public static class AdkServer
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "ADK Server API v1");
             });
         }
-        
+
         app.UseWebSockets();
         app.UseCors();
         app.MapAdkApi();
@@ -117,14 +117,14 @@ public static class AdkServer
             .AddColumn();
 
         grid.AddRow("[bold cyan]Server[/]", $"[link={url}]{url}[/]");
-        
+
         if (showAdkWebUI)
             grid.AddRow("[bold green]Dev UI[/]", $"[link={url}/dev-ui]{url}/dev-ui[/]");
-            
+
         if (showSwaggerUI)
             grid.AddRow("[bold yellow]Swagger UI[/]", $"[link={url}/swagger]{url}/swagger[/]");
         grid.AddRow("[bold magenta]Agent[/]", rootAgent.Name);
-        
+
         if (enableA2a)
             grid.AddRow("[bold blue]A2A[/]", $"[link={url}/a2a/{rootAgent.Name}/]{url}/a2a/{rootAgent.Name}/[/]");
 

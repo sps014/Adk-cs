@@ -27,7 +27,7 @@ public sealed class ExecuteBashTool : BaseTool
             return new Dictionary<string, object?> { ["error"] = "Command is required." };
         }
 
-        var isAllowed = _allowedPrefixes.Contains("*") || 
+        var isAllowed = _allowedPrefixes.Contains("*") ||
                         _allowedPrefixes.Any(p => command.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
         if (!isAllowed)
@@ -81,7 +81,7 @@ public sealed class ExecuteBashTool : BaseTool
         var processExitTask = proc.WaitForExitAsync();
 
         var completedTask = await Task.WhenAny(processExitTask, timeoutTask);
-        
+
         if (completedTask == timeoutTask)
         {
             try
