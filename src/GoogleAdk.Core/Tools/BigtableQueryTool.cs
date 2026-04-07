@@ -29,7 +29,7 @@ public sealed class BigtableQueryTool : BaseTool
         var rowKey = args.TryGetValue("rowKey", out var rkObj) ? FunctionToolArgs.Get<string>(rkObj) : null;
         var rowPrefix = args.TryGetValue("rowPrefix", out var rpObj) ? FunctionToolArgs.Get<string>(rpObj) : null;
         var limitObj = args.GetValueOrDefault("limit");
-        
+
         int limit = 10;
         if (limitObj is int l) limit = l;
         else if (limitObj is string s && int.TryParse(s, out int parsed)) limit = parsed;
@@ -38,7 +38,7 @@ public sealed class BigtableQueryTool : BaseTool
         {
             var client = await BigtableClient.CreateAsync();
             var tableName = new TableName(projectId, instanceId, tableId);
-            
+
             var results = new List<Dictionary<string, object?>>();
 
             if (!string.IsNullOrEmpty(rowKey))
@@ -53,7 +53,7 @@ public sealed class BigtableQueryTool : BaseTool
             {
                 var prefixBytes = System.Text.Encoding.UTF8.GetBytes(rowPrefix);
                 var prefixEndBytes = System.Text.Encoding.UTF8.GetBytes(rowPrefix + (char)0xFFFF);
-                
+
                 var rowSet = RowSet.FromRowRanges(RowRange.ClosedOpen(
                     Google.Protobuf.ByteString.CopyFrom(prefixBytes),
                     Google.Protobuf.ByteString.CopyFrom(prefixEndBytes)));

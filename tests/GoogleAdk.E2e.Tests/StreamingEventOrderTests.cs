@@ -210,11 +210,13 @@ public class StreamingEventOrderTests
 
         var session = await runner.SessionService.GetSessionAsync(new GetSessionRequest
         {
-            AppName = "streaming-test", UserId = "user-1", SessionId = sessionId,
+            AppName = "streaming-test",
+            UserId = "user-1",
+            SessionId = sessionId,
         });
 
         Assert.NotNull(session);
-        Assert.Empty(session!.Events.Where(e => e.Partial == true));
+        Assert.DoesNotContain(session!.Events, e => e.Partial == true);
         var modelEvents = session.Events.Where(e => e.Author == "test-agent").ToList();
         Assert.Single(modelEvents);
         Assert.Equal("Hello World!", modelEvents[0].Content?.Parts?.First().Text);
@@ -280,13 +282,15 @@ public class StreamingEventOrderTests
         });
         var rootAgent = new LlmAgent(new LlmAgentConfig
         {
-            Name = "root", Model = rootLlm, SubAgents = [subAgent],
+            Name = "root",
+            Model = rootLlm,
+            SubAgents = [subAgent],
         });
         var (runner, sessionId) = await SetupAsync(rootAgent);
         var events = await CollectEventsAsync(runner, sessionId, UserMessage("Help me"));
 
-        Assert.True(events.Any(e => e.Author == "root"));
-        Assert.True(events.Any(e => e.Author == "specialist"));
+        Assert.Contains(events, e => e.Author == "root");
+        Assert.Contains(events, e => e.Author == "specialist");
         Assert.True(events.Last().IsFinalResponse());
     }
 
@@ -464,8 +468,8 @@ public class StreamingEventOrderTests
             new RunConfig { StreamingMode = StreamingMode.Sse });
 
         Assert.Equal(1, callCount);
-        Assert.True(events.Any(e => e.Author == "weather_agent" && e.IsFinalResponse()));
-        Assert.True(events.Any(e => e.Author == "summary_agent" && e.IsFinalResponse()));
+        Assert.Contains(events, e => e.Author == "weather_agent" && e.IsFinalResponse());
+        Assert.Contains(events, e => e.Author == "summary_agent" && e.IsFinalResponse());
     }
 
     // --- Real Gemini LLM tests (integration) ---
@@ -584,7 +588,7 @@ public class StreamingEventOrderTests
         var nonPartialFcCount = events.Count(e => e.Partial != true && e.GetFunctionCalls().Count > 0);
         Assert.True(callCount >= 1, "Tool should be called at least once");
         Assert.Equal(nonPartialFcCount, callCount);
-        Assert.True(events.Any(e => e.IsFinalResponse()));
+        Assert.Contains(events, e => e.IsFinalResponse());
     }
 
     [Fact]
@@ -629,7 +633,7 @@ public class StreamingEventOrderTests
         var events = await CollectEventsAsync(runner, sessionId, UserMessage("What is the weather in Sydney?"));
 
         Assert.True(events.Count > 0);
-        Assert.True(events.Any(e => e.IsFinalResponse()));
+        Assert.Contains(events, e => e.IsFinalResponse());
 
         for (int i = 0; i < events.Count - 1; i++)
         {

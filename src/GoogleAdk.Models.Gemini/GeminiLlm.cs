@@ -27,8 +27,8 @@ public class GeminiLlm : MeaiLlm
     extern static void SetRetrievalTool(GenerativeModel obj, GenerativeAI.Types.Tool? value);
 
     public override async IAsyncEnumerable<LlmResponse> GenerateContentAsync(
-        LlmRequest llmRequest, 
-        bool stream = false, 
+        LlmRequest llmRequest,
+        bool stream = false,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         // Extract the underlying GenerativeModel to configure native tools
@@ -56,12 +56,12 @@ public class GeminiLlm : MeaiLlm
                 {
                     genModel.UseGoogleSearch = true;
                 }
-                
+
                 if (toolDecl.Retrieval?.VertexAiSearch != null)
                 {
                     var vs = toolDecl.Retrieval.VertexAiSearch;
                     var specs = vs.DataStoreSpecs?.Select(s => new VertexAISearchDataStoreSpec { DataStore = s.DataStore }).ToList();
-                    
+
                     var toolObj = new GenerativeAI.Types.Tool
                     {
                         Retrieval = new VertexRetrievalTool
@@ -81,7 +81,7 @@ public class GeminiLlm : MeaiLlm
                 else if (toolDecl.Retrieval?.VertexRagStore != null)
                 {
                     var vrs = toolDecl.Retrieval.VertexRagStore;
-                    
+
                     var toolObj = new GenerativeAI.Types.Tool
                     {
                         Retrieval = new VertexRetrievalTool

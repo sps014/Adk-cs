@@ -23,7 +23,7 @@ public class FunctionToolDiagnosticSuppressor : DiagnosticSuppressor
         suppressedDiagnosticId: "CA1811",
         justification: "Method is used as a marker by the FunctionTool source generator");
 
-    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions => 
+    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions =>
         ImmutableArray.Create(CS8321Suppression, IDE0051Suppression, CA1811Suppression);
 
     public override void ReportSuppressions(SuppressionAnalysisContext context)
@@ -40,7 +40,7 @@ public class FunctionToolDiagnosticSuppressor : DiagnosticSuppressor
 
             if (node == null) continue;
 
-            var methodOrLocal = node.FirstAncestorOrSelf<SyntaxNode>(n => 
+            var methodOrLocal = node.FirstAncestorOrSelf<SyntaxNode>(n =>
                 n is MethodDeclarationSyntax || n is LocalFunctionStatementSyntax);
 
             if (methodOrLocal != null)
@@ -91,9 +91,9 @@ public class FunctionToolDiagnosticSuppressor : DiagnosticSuppressor
             foreach (var attr in attrList.Attributes)
             {
                 var name = attr.Name.ToString();
-                if (name == "FunctionTool" || 
-                    name == "FunctionToolAttribute" || 
-                    name.EndsWith(".FunctionTool") || 
+                if (name == "FunctionTool" ||
+                    name == "FunctionToolAttribute" ||
+                    name.EndsWith(".FunctionTool") ||
                     name.EndsWith(".FunctionToolAttribute"))
                 {
                     return true;

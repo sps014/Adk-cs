@@ -81,7 +81,7 @@ public class OpenApiToolsetTests
         Assert.NotNull(properties);
         Assert.True(properties.ContainsKey("id"));
     }
-    
+
     [Fact]
     public async Task OpenApiToolset_GetToolsAsyncReturnsAllTools()
     {

@@ -26,7 +26,7 @@ public sealed class GeminiContextCacheManager
     public GeminiContextCacheManager(GenerativeModel model)
     {
         _model = model;
-        
+
         var useVertexAi = string.Equals(
             System.Environment.GetEnvironmentVariable("GOOGLE_GENAI_USE_VERTEXAI"),
             "True", StringComparison.OrdinalIgnoreCase);
@@ -88,7 +88,7 @@ public sealed class GeminiContextCacheManager
     private int FindCountOfContentsToCache(List<GoogleAdk.Core.Abstractions.Models.Content> contents)
     {
         if (contents == null || contents.Count == 0) return 0;
-        
+
         int lastUserBatchStart = contents.Count;
         for (int i = contents.Count - 1; i >= 0; i--)
         {
@@ -162,7 +162,7 @@ public sealed class GeminiContextCacheManager
                     Parts = new List<Google.GenAI.Types.Part> { new Google.GenAI.Types.Part { Text = request.Config.SystemInstruction } }
                 };
             }
-            
+
             if (request.Config?.Tools != null && request.Config.Tools.Count > 0)
             {
                 var toolsList = new List<Google.GenAI.Types.Tool>();
@@ -181,7 +181,7 @@ public sealed class GeminiContextCacheManager
                                 // but we should pass it to ensure the fingerprint/model has the exact same context.
                                 // It might be safer to serialize/deserialize
                             };
-                            
+
                             if (fd.Parameters != null)
                             {
                                 var jsonParams = JsonSerializer.Serialize(fd.Parameters);
@@ -203,10 +203,10 @@ public sealed class GeminiContextCacheManager
                     {
                         var vs = tool.Retrieval.VertexAiSearch;
                         var specs = vs.DataStoreSpecs?.Select(s => new Google.GenAI.Types.VertexAISearchDataStoreSpec { DataStore = s.DataStore }).ToList();
-                        
-                        toolsList.Add(new Google.GenAI.Types.Tool 
-                        { 
-                            Retrieval = new Google.GenAI.Types.Retrieval 
+
+                        toolsList.Add(new Google.GenAI.Types.Tool
+                        {
+                            Retrieval = new Google.GenAI.Types.Retrieval
                             {
                                 VertexAiSearch = new Google.GenAI.Types.VertexAISearch
                                 {
@@ -222,10 +222,10 @@ public sealed class GeminiContextCacheManager
                     else if (tool.Retrieval?.VertexRagStore != null)
                     {
                         var vrs = tool.Retrieval.VertexRagStore;
-                        
-                        toolsList.Add(new Google.GenAI.Types.Tool 
-                        { 
-                            Retrieval = new Google.GenAI.Types.Retrieval 
+
+                        toolsList.Add(new Google.GenAI.Types.Tool
+                        {
+                            Retrieval = new Google.GenAI.Types.Retrieval
                             {
                                 VertexRagStore = new Google.GenAI.Types.VertexRagStore
                                 {
@@ -298,7 +298,7 @@ public sealed class GeminiContextCacheManager
             {
                 foreach (var p in c.Parts)
                 {
-                    if (p.Text != null) 
+                    if (p.Text != null)
                     {
                         targetContent.Parts.Add(new Google.GenAI.Types.Part { Text = p.Text });
                     }

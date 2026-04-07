@@ -46,7 +46,7 @@ public sealed class VertexAiRagRetrievalTool : BaseTool
                 }
             }
         });
-        
+
         return Task.CompletedTask;
     }
 }

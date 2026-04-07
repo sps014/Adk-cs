@@ -30,7 +30,7 @@ public class CacheMetadata
     /// <summary>Number of contents included in this cache.</summary>
     [JsonPropertyName("contents_count")]
     public int ContentsCount { get; set; }
-    
+
     public CacheMetadata Clone()
     {
         return new CacheMetadata
@@ -44,6 +44,6 @@ public class CacheMetadata
         };
     }
 
-    public override string ToString() => 
+    public override string ToString() =>
         $"CacheMetadata(Name={CacheName}, Fingerprint={Fingerprint}, Used={InvocationsUsed}, Contents={ContentsCount})";
 }

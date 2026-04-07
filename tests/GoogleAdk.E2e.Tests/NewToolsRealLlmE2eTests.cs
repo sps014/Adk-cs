@@ -49,9 +49,9 @@ public class NewToolsRealLlmE2eTests
                     }
                 }
             }
-            
+
             var fullResponse = string.Join(" ", responseParts).ToLower();
-            Assert.True(fullResponse.Contains("auth failed") || fullResponse.Contains("error") || fullResponse.Contains("huzzah") || fullResponse.Contains("appear"), 
+            Assert.True(fullResponse.Contains("auth failed") || fullResponse.Contains("error") || fullResponse.Contains("huzzah") || fullResponse.Contains("appear"),
                 $"Unexpected response: {fullResponse}");
         }
         catch (Exception ex)
@@ -100,9 +100,9 @@ public class NewToolsRealLlmE2eTests
                 }
             }
         }
-        
+
         var fullResponse = string.Join(" ", responseParts).ToLower();
-        Assert.True(fullResponse.Contains("compute engine") || fullResponse.Contains("error"), 
+        Assert.True(fullResponse.Contains("compute engine") || fullResponse.Contains("error"),
             $"Unexpected response: {fullResponse}");
     }
 
@@ -163,9 +163,9 @@ public class NewToolsRealLlmE2eTests
                 }
             }
         }
-        
+
         var fullResponse = string.Join(" ", responseParts).ToLower();
-        Assert.True(fullResponse.Contains("arr") || fullResponse.Contains("matey") || fullResponse.Contains("error"), 
+        Assert.True(fullResponse.Contains("arr") || fullResponse.Contains("matey") || fullResponse.Contains("error"),
             $"Unexpected response: {fullResponse}");
     }
 }

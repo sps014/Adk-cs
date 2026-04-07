@@ -47,7 +47,7 @@ public class OpenAPIToolset : BaseToolset
                     operation.Value,
                     baseUrl,
                     httpClient);
-                
+
                 _tools.Add(tool);
             }
         }

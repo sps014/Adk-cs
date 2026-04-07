@@ -39,7 +39,7 @@ public class GoogleAuthHandler : DelegatingHandler
 {
     private readonly GoogleCredential _credential;
 
-    public GoogleAuthHandler(GoogleCredential credential, HttpMessageHandler innerHandler) 
+    public GoogleAuthHandler(GoogleCredential credential, HttpMessageHandler innerHandler)
         : base(innerHandler)
     {
         _credential = credential;

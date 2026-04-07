@@ -91,7 +91,7 @@ static async Task RunAndPrintAsync(Runner runner, string sessionId, Content user
                 }
             }
         }
-        
+
         if (evt.IsFinalResponse() && evt.CacheMetadata != null)
         {
             Console.ForegroundColor = ConsoleColor.Green;
