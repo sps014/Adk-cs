@@ -113,7 +113,7 @@ public record WeatherData(string Location, string Forecast);
 Same as the Python Development UI. A built-in development UI to help you test,
 evaluate, debug, and showcase your agent(s).
 
-<img alt="Image" src="docs/assets/adk-web-dev-ui-function-call.png" />
+<img alt="Image" src="https://github.com/user-attachments/assets/1f8db230-b8f2-4b3c-85c8-54c32ea9e379" />
 
 ### Evaluate Agents
 
