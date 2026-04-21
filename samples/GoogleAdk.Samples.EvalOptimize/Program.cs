@@ -8,8 +8,11 @@ using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Runner;
 using GoogleAdk.Evaluation;
+using GoogleAdk.Evaluation.EfCore;
+using GoogleAdk.Evaluation.Evaluators;
 using GoogleAdk.Evaluation.Models;
 using GoogleAdk.Optimization;
+using Microsoft.EntityFrameworkCore;
 
 AdkEnv.Load();
 
@@ -17,20 +20,22 @@ Console.WriteLine("=== Eval + Optimize Sample (LLM) ===\n");
 
 var model = "gemini-2.5-flash";
 
-// ---- 1. Run inference for an eval set -------------------------------------
+// ---- 0. Set up EF Core for Evaluation Management --------------------------
 
-var writerAgent = new LlmAgent(new LlmAgentConfig
-{
-    Name = "writer",
-    Model = model,
-    Instruction = "Answer in one concise sentence."
-});
+var dbOptions = new DbContextOptionsBuilder<AdkEvaluationDbContext>()
+    .UseInMemoryDatabase("EvalSampleDb")
+    .Options;
 
-var writerRunner = new InMemoryRunner("eval-opt", writerAgent);
+var dbContext = new AdkEvaluationDbContext(dbOptions);
+var evalSetManager = new EfCoreEvalSetManager(dbContext);
+
+// ---- 1. Create and Save an eval set ---------------------------------------
 
 var evalSet = new EvalSet
 {
     EvalSetId = "sample-set",
+    Name = "IT Summarization Set",
+    Description = "Checks the ability to summarize complex IT concepts.",
     EvalCases =
     [
         new EvalCase
@@ -44,6 +49,11 @@ var evalSet = new EvalSet
                     {
                         Role = "user",
                         Parts = [new Part { Text = "In one sentence, summarize GDPR." }]
+                    },
+                    FinalResponse = new Content
+                    {
+                        Role = "model",
+                        Parts = [new Part { Text = "GDPR is a privacy and security law that imposes obligations onto organizations anywhere, so long as they target or collect data related to people in the EU." }]
                     }
                 }
             ]
@@ -59,6 +69,11 @@ var evalSet = new EvalSet
                     {
                         Role = "user",
                         Parts = [new Part { Text = "Explain SLOs to a new engineer in one sentence." }]
+                    },
+                    FinalResponse = new Content
+                    {
+                        Role = "model",
+                        Parts = [new Part { Text = "An SLO is an agreement within an SLA about a specific metric like uptime or response time." }]
                     }
                 }
             ]
@@ -66,25 +81,60 @@ var evalSet = new EvalSet
     ]
 };
 
+await evalSetManager.SaveEvalSetAsync(evalSet);
+Console.WriteLine($"Saved EvalSet {evalSet.EvalSetId}");
+
+// ---- 2. Run inference for the eval set ------------------------------------
+
+var writerAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "writer",
+    Model = model,
+    Instruction = "Answer in one concise sentence. Make it easy to understand for beginners."
+});
+
+var writerRunner = new InMemoryRunner("eval-opt", writerAgent);
+
 var evalService = new LocalEvalService();
 var inferenceResults = await evalService.PerformInferenceAsync(writerRunner, evalSet);
 
 Console.WriteLine($"Inference results: {inferenceResults.Count} cases");
 
-// ---- 2. LLM-based evaluation ----------------------------------------------
+// ---- 3. Standard Evaluators (Rubric & Hallucination) ----------------------
 
-var judgeRunner = CreateJudgeRunner(model);
-var evaluator = new LlmJudgeEvaluator(judgeRunner);
-var scoredResults = await evalService.EvaluateAsync(evalSet, inferenceResults, [evaluator]);
+var judgeModel = (LlmModel)model;
+
+var rubricEvaluator = new RubricBasedEvaluator(
+    name: "ClarityScore",
+    judgeModel: judgeModel,
+    rubricDescription: "Score 1.0 if the ACTUAL OUTPUT is highly clear and uses simple language. Score 0.5 if it uses jargon. Score 0.0 if it is incomprehensible."
+);
+
+var hallucinationEvaluator = new HallucinationEvaluator(judgeModel);
+
+var scoredResults = await evalService.EvaluateAsync(
+    evalSet, 
+    inferenceResults, 
+    [rubricEvaluator, hallucinationEvaluator]);
 
 foreach (var caseResult in scoredResults)
 {
-    var metric = caseResult.Invocations[0].Metrics[evaluator.Name];
-    Console.WriteLine($"Case {caseResult.EvalId} score: {metric.Score:0.00} ({metric.Reason})");
+    Console.WriteLine($"Case: {caseResult.EvalId}");
+    foreach (var metricKvp in caseResult.Invocations[0].Metrics)
+    {
+        var metric = metricKvp.Value;
+        Console.WriteLine($"  - {metric.MetricName}: {metric.Score:0.00} ({metric.Reason})");
+    }
 }
 
-// ---- 3. LLM-based prompt optimization -------------------------------------
+// Save the evaluation run to EF Core
+var runId = Guid.NewGuid().ToString("N");
+await evalSetManager.SaveEvaluationRunAsync(runId, evalSet.EvalSetId, scoredResults);
+Console.WriteLine($"\nSaved Evaluation Run {runId}");
 
+// ---- 4. LLM-based prompt optimization -------------------------------------
+
+var judgeRunner = CreateJudgeRunner(model);
 var optimizer = new SimplePromptOptimizer();
 var sampler = new LlmPromptSampler(
     judgeRunner,
@@ -109,42 +159,6 @@ static Runner CreateJudgeRunner(string model)
     });
 
     return new InMemoryRunner("eval-opt-judge", judgeAgent);
-}
-
-
-file sealed class LlmJudgeEvaluator : IEvalMetricEvaluator
-{
-    private readonly Runner _runner;
-    public string Name => "llm_judge";
-
-    public LlmJudgeEvaluator(Runner runner)
-    {
-        _runner = runner;
-    }
-
-    public async Task<EvalMetricResult> EvaluateAsync(
-        Invocation invocation,
-        InvocationResult result,
-        CancellationToken cancellationToken = default)
-    {
-        var userText = invocation.UserContent?.Parts?.FirstOrDefault()?.Text ?? "(none)";
-        var responseText = result.FinalResponse?.Parts?.FirstOrDefault()?.Text ?? "(none)";
-
-        var prompt = $"""
-Score the response from 0 to 1.
-User: {userText}
-Response: {responseText}
-Return only a number between 0 and 1.
-""";
-
-        var (score, raw) = await EvalHelpers.ScoreWithLlmAsync(_runner, prompt, cancellationToken);
-        return new EvalMetricResult
-        {
-            MetricName = Name,
-            Score = score,
-            Reason = raw
-        };
-    }
 }
 
 file sealed class LlmPromptSampler : ISampler<string>
