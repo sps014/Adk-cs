@@ -5,6 +5,7 @@ using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Tools;
 using System.Text;
 using GoogleAdk.Core;
+using GoogleAdk.Core.Runner;
 
 
 AdkEnv.Load();
@@ -28,6 +29,12 @@ var agent = new LlmAgent(new LlmAgentConfig
                 ListArtifactsTool
             ]
 });
+
+if (args.Contains("--console"))
+{
+    await ConsoleRunner.RunAsync(agent);
+    return;
+}
 
 await AdkServer.RunAsync(agent);
 

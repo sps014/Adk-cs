@@ -37,58 +37,6 @@ var searchAgent = new LlmAgent(new LlmAgentConfig
     Tools = new List<IBaseTool> { new GoogleSearchTool() },
 });
 
-var runner = new InMemoryRunner("google-search-sample", searchAgent);
+// ── Console mode ───────────────────────────────────────────────────────────
 
-// Create a persistent session so conversation history is preserved across turns
-var session = await runner.SessionService.CreateSessionAsync(
-    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-    {
-        AppName = "google-search-sample",
-        UserId = "user-1",
-    });
-
-Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
-Console.WriteLine("║  ADK C# — Google Search Grounding Sample                ║");
-Console.WriteLine("║  Ask anything! The agent has real-time web access.      ║");
-Console.WriteLine("║  Type 'quit' to exit.                                   ║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
-Console.WriteLine();
-
-while (true)
-{
-    Console.Write("You: ");
-    var input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
-        break;
-
-    var userMessage = new Content
-    {
-        Role = "user",
-        Parts = new List<Part> { new() { Text = input } }
-    };
-
-    Console.WriteLine();
-    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-    {
-        var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
-        if (text != null && evt.Partial != true)
-        {
-            Console.WriteLine($"[{evt.Author}]: {text}");
-            Console.WriteLine();
-        }
-
-        if (evt.GroundingMetadata != null)
-        {
-            Console.WriteLine("  [Grounding Metadata]");
-            if (evt.GroundingMetadata.WebSearchQueries != null && evt.GroundingMetadata.WebSearchQueries.Count > 0)
-            {
-                Console.WriteLine($"    Search Queries: {string.Join(", ", evt.GroundingMetadata.WebSearchQueries)}");
-            }
-            if (evt.GroundingMetadata.SearchEntryPoint != null)
-            {
-                Console.WriteLine($"    Search Entry Point Rendered Content: {evt.GroundingMetadata.SearchEntryPoint.RenderedContent}");
-            }
-        }
-    }
-    Console.WriteLine(new string('─', 60));
-}
+await ConsoleRunner.RunAsync(searchAgent);

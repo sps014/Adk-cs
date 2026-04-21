@@ -40,62 +40,12 @@ Console.WriteLine($"Agent configured with tool: {vertexSearchTool.Name}");
 Console.WriteLine($"DataStore ID: {vertexSearchTool.DataStoreId}\n");
 
 
-if (args.Contains("--web"))
+if (args.Contains("--console"))
 {
-    await AdkServer.RunAsync(agent);
+    await ConsoleRunner.RunAsync(agent);
     return;
 }
 
-var runner = new InMemoryRunner("vertex-search-app", agent);
-await runner.SessionService.CreateSessionAsync(new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-{
-    AppName = "vertex-search-app",
-    UserId = "user-1",
-    SessionId = "session-1"
-});
-
-var content = new Content
-{
-    Role = "user",
-    Parts = new List<Part> { new Part { Text = "" } }
-};
-
-Console.WriteLine("User: " + content.Parts[0].Text);
-
-try
-{
-    Console.Write("Agent: ");
-    GoogleAdk.Core.Abstractions.Models.GroundingMetadata? finalGrounding = null;
-    await foreach (var evt in runner.RunAsync("user-1", "session-1", content))
-    {
-        if (evt.Content?.Parts?.FirstOrDefault()?.Text is string text)
-        {
-            Console.Write(text);
-        }
-        if (evt.GroundingMetadata != null)
-        {
-            finalGrounding = evt.GroundingMetadata;
-        }
-    }
-    Console.WriteLine();
-
-    if (finalGrounding != null)
-    {
-        Console.WriteLine("\n[Grounding Metadata]");
-        if (finalGrounding.WebSearchQueries != null && finalGrounding.WebSearchQueries.Count > 0)
-        {
-            Console.WriteLine($"- Web Search Queries: {string.Join(", ", finalGrounding.WebSearchQueries)}");
-        }
-        if (finalGrounding.SearchEntryPoint != null)
-        {
-            Console.WriteLine($"- Search Entry Point Rendered Content: {finalGrounding.SearchEntryPoint.RenderedContent}");
-        }
-    }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"\n\n[Note] This sample requires a valid Vertex AI DataStore ID and credentials.");
-    Console.WriteLine($"Error: {ex.Message}");
-}
+await AdkServer.RunAsync(agent);
 
 Console.WriteLine("\nDone!");

@@ -65,63 +65,6 @@ var parallelAnalysis = new ParallelAgent(new BaseAgentConfig
     SubAgents = new List<BaseAgent> { optimist, pessimist, pragmatist },
 });
 
-var runner = new InMemoryRunner("parallel-agent-sample", parallelAnalysis);
+// ── Console mode ───────────────────────────────────────────────────────────
 
-// Create a persistent session so conversation history is preserved across turns
-var session = await runner.SessionService.CreateSessionAsync(
-    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-    {
-        AppName = "parallel-agent-sample",
-        UserId = "user-1",
-    });
-
-Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
-Console.WriteLine("║  ADK C# — Parallel Agent Sample                         ║");
-Console.WriteLine("║  Three analysts run simultaneously on your topic.       ║");
-Console.WriteLine("║  Type 'quit' to exit.                                   ║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
-Console.WriteLine();
-
-while (true)
-{
-    Console.Write("Topic: ");
-    var input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
-        break;
-
-    var userMessage = new Content
-    {
-        Role = "user",
-        Parts = new List<Part> { new() { Text = input } }
-    };
-
-    Console.WriteLine();
-    var agentOutputs = new Dictionary<string, string>();
-
-    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-    {
-        var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
-        if (text != null && evt.Partial != true && evt.Author != null)
-        {
-            agentOutputs[evt.Author] = text;
-            Console.WriteLine($"  [{evt.Author} finished]");
-        }
-    }
-
-    // Display results grouped by agent
-    Console.WriteLine();
-    foreach (var (agent, output) in agentOutputs.OrderBy(x => x.Key))
-    {
-        var emoji = agent switch
-        {
-            "optimist" => "🟢",
-            "pessimist" => "🔴",
-            "pragmatist" => "🔵",
-            _ => "⚪"
-        };
-        Console.WriteLine($"{emoji} {agent.ToUpperInvariant()}:");
-        Console.WriteLine(output);
-        Console.WriteLine();
-    }
-    Console.WriteLine(new string('─', 60));
-}
+await ConsoleRunner.RunAsync(parallelAnalysis);

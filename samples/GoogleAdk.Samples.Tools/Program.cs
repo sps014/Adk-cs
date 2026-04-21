@@ -41,53 +41,8 @@ var agent = new LlmAgent(new LlmAgentConfig
     ]
 });
 
-var runner = new InMemoryRunner("tools-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
-{
-    AppName = "tools-sample",
-    UserId = "user-1"
-});
+// ── Console mode ───────────────────────────────────────────────────────────
 
-var userMessage = new Content
-{
-    Role = "user",
-    Parts =
-    [
-        new Part
-        {
-            Text = "Check the weather in Seattle, then run `echo tools-ok` using the bash tool."
-        }
-    ]
-};
-
-var authState = new Dictionary<string, object?>
-{
-    ["temp:" + authConfig.CredentialKey] = authConfig.RawAuthCredential
-};
-
-Console.WriteLine("User: Check the weather in Seattle, then run `echo tools-ok`.\n");
-
-await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage, authState))
-{
-    foreach (var call in evt.GetFunctionCalls())
-        Console.WriteLine($"Tool call: {call.Name}");
-
-    foreach (var response in evt.GetFunctionResponses())
-    {
-        var responseText = response.Response != null
-            ? string.Join(", ", response.Response.Select(kv => $"{kv.Key}={kv.Value}"))
-            : "(null)";
-        Console.WriteLine($"Tool response ({response.Name}): {responseText}");
-    }
-
-    if (evt.IsFinalResponse() && evt.Content?.Parts != null)
-    {
-        foreach (var part in evt.Content.Parts)
-        {
-            if (!string.IsNullOrWhiteSpace(part.Text))
-                Console.WriteLine($"Agent: {part.Text}");
-        }
-    }
-}
+await ConsoleRunner.RunAsync(agent);
 
 Console.WriteLine("\n=== Tools Sample Complete ===");

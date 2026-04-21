@@ -94,6 +94,9 @@ var rootAgent = new LlmAgent(new LlmAgentConfig
 // Creates a webserver that can launch the ADK web UI and other endpoints 
 await AdkServer.RunAsync(rootAgent);
 
+//await ConsoleRunner.RunAsync(rootAgent); for running in console or you can easily implement your custom runner
+
+
 /// <summary>
 /// Fetches the current weather data for a given location.
 /// </summary>

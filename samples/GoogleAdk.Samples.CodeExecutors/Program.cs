@@ -26,48 +26,8 @@ var agent = new LlmAgent(new LlmAgentConfig
     CodeExecutor = new BuiltInCodeExecutor()
 });
 
-var runner = new InMemoryRunner("code-exec-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
-{
-    AppName = "code-exec-sample",
-    UserId = "user-1"
-});
+// ── Console mode ───────────────────────────────────────────────────────────
 
-var userMessage = new Content
-{
-    Role = "user",
-    Parts =
-    [
-        new Part { Text = "Calculate the mean and standard deviation of [3, 5, 8, 10, 12]. Show the result." }
-    ]
-};
-
-Console.WriteLine("User: Calculate the mean and standard deviation of [3, 5, 8, 10, 12].\n");
-
-await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-{
-    if (evt.Content?.Parts == null) continue;
-
-    foreach (var part in evt.Content.Parts)
-    {
-        if (part.ExecutableCode?.Code != null)
-        {
-            Console.WriteLine($"Executable code ({part.ExecutableCode.Language}):");
-            Console.WriteLine(part.ExecutableCode.Code);
-            Console.WriteLine();
-        }
-
-        if (part.CodeExecutionResult != null)
-        {
-            Console.WriteLine("Code execution result:");
-            Console.WriteLine(part.CodeExecutionResult.Output);
-        }
-
-        if (!string.IsNullOrWhiteSpace(part.Text))
-        {
-            Console.WriteLine($"Agent: {part.Text}");
-        }
-    }
-}
+await ConsoleRunner.RunAsync(agent);
 
 Console.WriteLine("\n=== Code Executors Sample Complete ===");

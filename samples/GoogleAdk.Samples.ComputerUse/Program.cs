@@ -65,49 +65,9 @@ var agent = new LlmAgent(new LlmAgentConfig
     Tools = [toolset]
 });
 
-var runner = new InMemoryRunner("computer-use-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
-{
-    AppName = "computer-use-sample",
-    UserId = "user-1"
-});
+// ── Console mode ───────────────────────────────────────────────────────────
 
-var userMessage = new Content
-{
-    Role = "user",
-    Parts =
-    [
-        new Part
-        {
-            Text = "Open a browser, navigate to https://github.com/trending, wait a moment for it to load, then read the page content and tell me the names of the top 3 trending repositories right now."
-        }
-    ]
-};
-
-Console.WriteLine("User: Open a browser, navigate to https://github.com/trending, wait a moment for it to load, then read the page content and tell me the names of the top 3 trending repositories right now.\n");
-
-await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-{
-    foreach (var call in evt.GetFunctionCalls())
-        Console.WriteLine($"Tool call: {call.Name}");
-
-    foreach (var response in evt.GetFunctionResponses())
-    {
-        var responseText = response.Response != null
-            ? string.Join(", ", response.Response.Select(kv => $"{kv.Key}={kv.Value}"))
-            : "(null)";
-        Console.WriteLine($"Tool response ({response.Name}): {responseText}");
-    }
-
-    if (evt.IsFinalResponse() && evt.Content?.Parts != null)
-    {
-        foreach (var part in evt.Content.Parts)
-        {
-            if (!string.IsNullOrWhiteSpace(part.Text))
-                Console.WriteLine($"Agent: {part.Text}");
-        }
-    }
-}
+await ConsoleRunner.RunAsync(agent);
 
 Console.WriteLine("\n=== Computer Use Sample Complete ===");
 await driver.CloseAsync();

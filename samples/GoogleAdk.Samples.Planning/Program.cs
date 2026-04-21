@@ -22,27 +22,9 @@ var agent = new LlmAgent(new LlmAgentConfig
     Instruction = "You are a helpful assistant."
 });
 
-var runner = new InMemoryRunner("planning-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-{
-    AppName = "planning-sample",
-    UserId = "user-1"
-});
+// ── Console mode ───────────────────────────────────────────────────────────
 
-var userMessage = new Content
-{
-    Role = "user",
-    Parts = [new Part { Text = "Plan a weekend in Paris." }]
-};
-
-await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-{
-    var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
-    if (!string.IsNullOrWhiteSpace(text))
-        Console.WriteLine(text);
-}
-
-
+await ConsoleRunner.RunAsync(agent);
 
 Console.WriteLine("\n=== Planning Sample Complete ===");
 
