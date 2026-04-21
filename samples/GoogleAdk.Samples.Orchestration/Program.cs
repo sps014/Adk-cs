@@ -142,67 +142,7 @@ var rootAgent = new LlmAgent(new LlmAgentConfig
 
 // ── Create and run ─────────────────────────────────────────────────────────
 
-var runner = new InMemoryRunner("orchestration-sample", rootAgent);
-
-// Create a persistent session so conversation history is preserved across turns
-var session = await runner.SessionService.CreateSessionAsync(
-    new GoogleAdk.Core.Abstractions.Sessions.CreateSessionRequest
-    {
-        AppName = "orchestration-sample",
-        UserId = "user-1",
-    });
-
-Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
-Console.WriteLine("║  ADK C# — Multi-Agent Orchestration Sample              ║");
-Console.WriteLine("║  Type a question or 'quit' to exit.                     ║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
-Console.WriteLine();
-
-// Interactive loop
-while (true)
-{
-    Console.Write("You: ");
-    var input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
-        break;
-
-    var userMessage = new Content
-    {
-        Role = "user",
-        Parts = new List<Part> { new Part { Text = input } }
-    };
-
-    Console.WriteLine();
-    var eventCount = 0;
-
-    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-    {
-        eventCount++;
-
-        // Show which agent is responding
-        var author = evt.Author ?? "system";
-        var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
-
-        if (text != null && evt.Partial != true)
-        {
-            Console.WriteLine($"[{author}]: {text}");
-            Console.WriteLine();
-        }
-
-        // Show function calls for transparency
-        var calls = evt.GetFunctionCalls();
-        if (calls.Count > 0)
-        {
-            foreach (var call in calls)
-            {
-                Console.WriteLine($"  ⚡ {author} calling tool: {call.Name}");
-            }
-        }
-    }
-
-    Console.WriteLine($"  ({eventCount} events produced)");
-    Console.WriteLine(new string('─', 60));
-}
+await ConsoleRunner.RunAsync(rootAgent);
 
 // Cleanup MCP if used
 if (mcpToolset != null)

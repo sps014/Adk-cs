@@ -54,7 +54,12 @@ nav:
   - Getting Started: getting-started.md
   - Core Features:
     - Features Overview: features.md
-    - Running Agents: running-agents.md
+    - Running Agents:
+      - Overview: running-agents.md
+      - ADK Web: adk-web.md
+      - ADK Server A2A: adk-server-a2a.md
+      - Console Runner: console-runner.md
+      - Custom Runner: custom-runner.md
     - Orchestration: orchestration.md
     - State: state.md
     - Memory: memory.md

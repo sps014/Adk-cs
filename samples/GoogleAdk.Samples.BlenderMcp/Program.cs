@@ -46,47 +46,7 @@ var agent = new LlmAgent(new LlmAgentConfig
     Tools = [blenderToolset]
 });
 
-var runner = new InMemoryRunner("blender-mcp-sample", agent);
-var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
-{
-    AppName = "blender-mcp-sample",
-    UserId = "user-1"
-});
-
-Console.WriteLine("╔══════════════════════════════════════════════════════════╗");
-Console.WriteLine("║  ADK C# — Blender MCP Sample                             ║");
-Console.WriteLine("║  Type a prompt or 'quit' to exit.                        ║");
-Console.WriteLine("╚══════════════════════════════════════════════════════════╝");
-Console.WriteLine();
-
-while (true)
-{
-    Console.Write("You: ");
-    var input = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
-        break;
-
-    var userMessage = new Content
-    {
-        Role = "user",
-        Parts = [new Part { Text = input }]
-    };
-
-    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
-    {
-        foreach (var call in evt.GetFunctionCalls())
-            Console.WriteLine($"  ⚡ Tool call: {call.Name}");
-
-        if (evt.IsFinalResponse() && evt.Content?.Parts != null)
-        {
-            foreach (var part in evt.Content.Parts)
-            {
-                if (!string.IsNullOrWhiteSpace(part.Text))
-                    Console.WriteLine($"Agent: {part.Text}");
-            }
-        }
-    }
-}
+await ConsoleRunner.RunAsync(agent);
 
 await blenderToolset.DisposeAsync();
 Console.WriteLine("Goodbye!");

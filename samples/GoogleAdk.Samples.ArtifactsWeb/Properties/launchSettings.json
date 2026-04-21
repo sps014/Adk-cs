@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "ArtifactsWeb": {
+      "commandName": "Project"
+    },
+    "ArtifactsWeb.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "--console"
+    }
+  }
+}
