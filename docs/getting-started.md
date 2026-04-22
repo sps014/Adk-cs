@@ -43,8 +43,8 @@ using System;
 using GoogleAdk.Core;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Abstractions.Models;
-using GoogleAdk.Core.Runner;
 using GoogleAdk.Models.Gemini;
+using GoogleAdk.Core.Runner;
 
 // 1. Load environment configurations
 AdkEnv.Load();
@@ -57,28 +57,13 @@ var agent = new LlmAgent(new LlmAgentConfig
     Instruction = "You are a helpful assistant. Keep answers concise."
 });
 
-// 3. Set up the runner to execute the agent.
-// InMemoryRunner handles session state and context temporarily for this process.
-var runner = new InMemoryRunner("quickstart_app", agent);
 
-// 4. Formulate the user's input request
-var input = new Content 
-{ 
-    Role = "user", 
-    Parts = [new Part { Text = "Explain what an LLM agent is in one sentence." }] 
-};
+await ConsoleRunner.RunAsync(agent); //run in console
 
-Console.WriteLine("User: Explain what an LLM agent is in one sentence.\n");
+//there are other ways to run it, like web UI or you can have a custom runner to have full control.
+//await AdkServer.RunAsync(coordinator); 
 
-// 5. Run the agent and stream the event responses back
-await foreach (var evt in runner.RunAsync("user-1", "session-1", input))
-{
-    // The ADK emits events continuously. We listen for textual output parts.
-    if (evt.Content?.Parts?.FirstOrDefault()?.Text is string text)
-    {
-        Console.WriteLine($"Agent: {text}");
-    }
-}
+
 ```
 
 ## Building from Source
