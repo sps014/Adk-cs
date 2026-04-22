@@ -34,6 +34,7 @@ debugging, versioning, and deployment anywhere – from your laptop to the cloud
 ### 🛠️ Tools & Integrations
 
 - **C# Source Gen Tools**: Effortlessly turn methods into tools using the `[FunctionTool]` attribute. [More info](docs/tools.md).
+- **Agent Skills**: Folder-based skills (`SKILL.md`, `references/`, `assets/`, `scripts/`) with `SkillToolset` and optional `SkillLoader.LoadFromDirectory` for disk-backed skills, aligned with the Python ADK pattern. [More info](docs/skills.md).
 - **MCP Support**: Full Model Context Protocol integration with dynamic tool discovery. [More info](docs/mcp.md).
 - **OpenAPI Integration**: Generate tools seamlessly from OpenAPI specs.
 - **Code Execution**: Run generated code within secure environments. [More info](docs/code-execution.md).
@@ -70,7 +71,8 @@ dotnet add package GoogleAdk --prerelease
 For building, evaluating, and deploying agents, follow the docs and samples:
 
 - **[In-repo docs](docs/index.md)** (feature guides for this .NET port)
-- **[Samples](https://github.com/sps014/GoogleAdk-cs/tree/main/samples)**
+- **[Skills](docs/skills.md)** — defining skills in code, loading from disk with `SkillLoader`, and wiring `SkillToolset` on an agent
+- **[Samples](https://github.com/sps014/GoogleAdk-cs/tree/main/samples)** — includes **`GoogleAdk.Samples.Skills`**, which loads a `.skill/` folder next to the project and runs the agent in the console
 
 ## 🏁 Feature Highlight
 
