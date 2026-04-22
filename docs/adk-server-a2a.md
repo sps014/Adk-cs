@@ -16,6 +16,23 @@ await AdkServer.RunAsync(myAgent, options =>
 });
 ```
 
+Alternatively, if integrating ADK into an existing ASP.NET Core application, you can enable A2A via the `AddAdk` service collection extension:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAdk(myAgent, options => 
+{
+    options.EnableA2a = true;
+});
+
+var app = builder.Build();
+app.UseAdk();
+app.MapAdk();
+
+app.Run();
+```
+
 ## Runtime Endpoints
 
 The key runtime endpoints include:

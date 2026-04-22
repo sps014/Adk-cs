@@ -43,87 +43,33 @@ public static class AdkServer
     /// </summary>
     public static async Task RunAsync(BaseAgent rootAgent, AdkServerOptions options)
     {
-        var agentLoader = new AgentLoader(".");
-        agentLoader.Register(rootAgent.Name, rootAgent);
-
-        var sessionService = new InMemorySessionService();
-        var artifactService = options.ArtifactService ?? new InMemoryArtifactService();
-
         var builder = WebApplication.CreateBuilder();
 
-        if (options.EnableCloudTracing)
+        builder.Services.AddAdk(rootAgent, opt =>
         {
-            builder.Services.AddOpenTelemetry()
-                .WithTracing(tracing => tracing
-                    .AddSource(AdkTracing.ActivitySource.Name)
-                    .AddGoogleCloudTracing());
-        }
-
-        builder.Services.AddSingleton(agentLoader);
-        builder.Services.AddSingleton<BaseSessionService>(sessionService);
-        builder.Services.AddSingleton(new RunnerManager(agentLoader, sessionService, artifactService, options.MemoryService, options.InitialState));
-        builder.Services.AddSingleton(new InMemoryTraceCollector());
-
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
-        {
-            c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ADK Server API", Version = "v1" });
+            opt.ArtifactService = options.ArtifactService;
+            opt.MemoryService = options.MemoryService;
+            opt.Port = options.Port;
+            opt.Host = options.Host;
+            opt.ShowAdkWebUI = options.ShowAdkWebUI;
+            opt.ShowSwaggerUI = options.ShowSwaggerUI;
+            opt.EnableA2a = options.EnableA2a;
+            opt.InitialState = options.InitialState;
+            opt.EnableCloudTracing = options.EnableCloudTracing;
+            opt.ConfigureCors = options.ConfigureCors;
+            opt.ConfigureServices = options.ConfigureServices;
+            opt.ConfigureApp = options.ConfigureApp;
         });
 
-        builder.Services.AddCors(corsOptions =>
-        {
-            corsOptions.AddDefaultPolicy(policy =>
-            {
-                if (options.ConfigureCors != null)
-                {
-                    options.ConfigureCors(policy);
-                }
-                else
-                {
-                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-                }
-            });
-        });
+        options.ConfigureServices?.Invoke(builder.Services);
 
         var app = builder.Build();
 
-        if (options.ShowSwaggerUI)
-        {
-            app.UseSwagger(c =>
-            {
-                c.SerializeAsV2 = true;
-            });
-            app.UseSwaggerUI(c =>
-            {
-                c.RoutePrefix = "swagger";
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ADK Server API v1");
-            });
-        }
+        app.UseAdk();
 
-        app.UseWebSockets();
-        app.UseCors();
-        app.MapAdkApi();
-        if (options.EnableA2a)
-            app.MapA2aApi();
+        options.ConfigureApp?.Invoke(app);
 
-        if (options.ShowAdkWebUI)
-        {
-            var embeddedProvider = new EmbeddedFileProvider(
-                typeof(AdkServer).Assembly, "GoogleAdk.ApiServer.wwwroot");
-
-            app.UseDefaultFiles(new DefaultFilesOptions
-            {
-                FileProvider = embeddedProvider,
-                RequestPath = "/dev-ui",
-            });
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = embeddedProvider,
-                RequestPath = "/dev-ui",
-                ServeUnknownFileTypes = false,
-            });
-            app.MapGet("/", () => Results.Redirect("/dev-ui"));
-        }
+        app.MapAdk();
 
         var url = $"http://{options.Host}:{options.Port}";
         app.Urls.Add(url);

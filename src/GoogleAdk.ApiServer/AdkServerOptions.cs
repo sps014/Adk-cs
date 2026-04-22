@@ -59,4 +59,14 @@ public class AdkServerOptions
     /// If not provided, allows any origin, method, and header.
     /// </summary>
     public Action<CorsPolicyBuilder>? ConfigureCors { get; set; }
+
+    /// <summary>
+    /// Optional action to configure additional services in the dependency injection container.
+    /// </summary>
+    public Action<IServiceCollection>? ConfigureServices { get; set; }
+
+    /// <summary>
+    /// Optional action to configure the application pipeline.
+    /// </summary>
+    public Action<IApplicationBuilder>? ConfigureApp { get; set; }
 }
