@@ -1,12 +1,14 @@
 // ============================================================================
-// Ollama Sample — MeaiLlm with Thinking (gemma4 / deepseek-r1)
+// Ollama Sample — Multi-Agent Orchestration with Thinking (gemma4)
 // ============================================================================
-// Demonstrates model-native thinking with a local Ollama model.
+// Demonstrates multi-agent orchestration with a local Ollama model.
+// Includes model-native thinking and streaming.
 //
-// Models that support thinking via TextReasoningContent:
-//   • gemma4:e4b  (Google Gemma 4 — recommended)
-//   • deepseek-r1 (DeepSeek R1 — explicit <think> blocks)
-//   • qwq         (Qwen thinking model)
+// Architecture:
+//   coordinator (root)
+//   └── research_pipeline (SequentialAgent)
+//       ├── researcher (uses GetWeatherDataTool)
+//       └── analyst (analyzes researcher's output)
 //
 // When thinking is enabled:
 //   • The ConsoleRunner renders a grey "Thinking (agent)" panel showing
@@ -20,17 +22,20 @@
 // ============================================================================
 
 using GoogleAdk.Core;
+using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Tools;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Planning;
 using GoogleAdk.Core.Runner;
+using GoogleAdk.Core.Tools;
 using GoogleAdk.ApiServer;
 using GoogleAdk.Models.Meai;
 using GoogleAdk.Models.Ollama;
 using Microsoft.Extensions.AI;
 
-Console.WriteLine("=== Ollama Thinking Sample (gemma4) ===\n");
+Console.WriteLine("=== Ollama Multi-Agent Thinking Sample (gemma4) ===\n");
+Console.WriteLine("Ask: compare London and Tokyo weather and generate a report in table and give the summary of the report.");
 
 AdkEnv.Load();
 
@@ -42,36 +47,82 @@ string modelName = "gemma4:e4b";
 IChatClient ollamaClient = new OllamaChatClient(new Uri("http://localhost:11434"), modelName);
 var llm = new MeaiLlm(modelName, ollamaClient);
 
-// ── Agent with BuiltInPlanner (thinking enabled) ──────────────────────────
-// BuiltInPlanner with ThinkingConfig activates the model's reasoning mode.
-// MeaiLlm surfaces thought content via MEAI's TextReasoningContent.
-var agent = new LlmAgent(new LlmAgentConfig
+// Helper to create an agent with thinking enabled
+LlmAgent CreateThinkingAgent(string name, string description, string instruction, string? outputKey = null, params IBaseTool[] tools)
 {
-    Name = "ollama_agent",
-    Model = llm,
-    Planner = new BuiltInPlanner(new ThinkingConfig
+    return new LlmAgent(new LlmAgentConfig
     {
-        // IncludeThoughts = true surfaces the internal reasoning in the UI.
-        IncludeThoughts = true,
-        // ThinkingBudget controls max reasoning tokens (provider-dependent).
-        // Set to null to let the model decide, or 0 to disable thinking.
-        ThinkingBudget = null,
-    }),
-    Instruction = """
-        You are a careful, methodical assistant.
-        Think step-by-step before answering — especially for reasoning-heavy
-        questions like math problems, logic puzzles, code reviews, or planning tasks.
-        """,
-    Tools = [GetWeatherDataTool],
+        Name = name,
+        Description = description,
+        Model = llm,
+        Planner = new BuiltInPlanner(new ThinkingConfig
+        {
+            // IncludeThoughts = true surfaces the internal reasoning in the UI.
+            IncludeThoughts = true,
+            ThinkingBudget = null,
+        }),
+        Instruction = instruction,
+        OutputKey = outputKey,
+        Tools = tools.ToList()
+    });
+}
+
+// ── 1. Researcher Agent ──────────────────────────────────────────────────
+var researcherAgent = CreateThinkingAgent(
+    "researcher",
+    "Gathers raw data and information.",
+    """
+    You are a thorough researcher. Use the tools available to gather factual data 
+    based on the user's request. Present your findings clearly and concisely.
+    """,
+    "research_data",
+    GetWeatherDataTool
+);
+
+// ── 2. Analyst Agent ─────────────────────────────────────────────────────
+var analystAgent = CreateThinkingAgent(
+    "analyst",
+    "Analyzes data and provides insights.",
+    """
+    You are an expert analyst. Review the research data provided:
+    {research_data?}
+    
+    Think carefully about what this data means, draw insights, and synthesize 
+    a final, well-structured report.
+    """
+);
+
+// ── 3. Orchestration Pipeline ────────────────────────────────────────────
+var pipeline = new SequentialAgent(new BaseAgentConfig
+{
+    Name = "research_pipeline",
+    Description = "A pipeline that researches a topic and then analyzes the findings.",
+    SubAgents = new List<BaseAgent> { researcherAgent, analystAgent }
 });
+
+// ── 4. Coordinator Agent ─────────────────────────────────────────────────
+var coordinator = CreateThinkingAgent(
+    "coordinator",
+    "Main coordinator agent that routes requests.",
+    """
+    You are an intelligent coordinator. You have access to a 'research_pipeline' 
+    tool that will research data and provide deep analysis.
+    
+    For comprehensive questions or analysis requests, delegate to the research_pipeline tool.
+    For simple questions, you can answer directly.
+    """,
+    null,
+    new AgentTool(pipeline)
+);
 
 // ── Run mode ──────────────────────────────────────────────────────────────
 if (args.Contains("--web"))
 {
-    await AdkServer.RunAsync(agent);
+    await AdkServer.RunAsync(coordinator);
+    return;
 }
 
-await ConsoleRunner.RunAsync(agent, cfg =>
+await ConsoleRunner.RunAsync(coordinator, cfg =>
 {
     cfg.FigletText = "Ollama";
     cfg.DebugMode = true;
@@ -91,6 +142,8 @@ Console.WriteLine("\n=== Ollama Sample Complete ===");
 [FunctionTool]
 static WeatherData? GetWeatherData(string location)
 {
+    if (location == "London")
+        return new WeatherData("London", "Cloudy with higher chances of rain");
     return new WeatherData(location, "Sunny with a chance of rainbows");
 }
 
