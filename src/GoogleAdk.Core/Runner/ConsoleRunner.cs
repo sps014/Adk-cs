@@ -87,6 +87,7 @@ public static class ConsoleRunner
         {
             e.Cancel = true;
             cts.Cancel();
+            Environment.Exit(0);
         };
 
         try
