@@ -6,25 +6,16 @@ repo_name: sps014/GoogleAdk-cs
 theme:
   name: material
   font:
-    text: Roboto
-    code: Roboto Mono
+    text: Inter
+    code: JetBrains Mono
   logo: https://adk.dev/assets/agent-development-kit.png
   favicon: https://adk.dev/assets/agent-development-kit.png
   icon:
     repo: fontawesome/brands/github
   palette:
-    - scheme: default
-      primary: indigo
-      accent: light-blue
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: cyan
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+    scheme: slate
+    primary: black
+    accent: deep-purple
   features:
     - content.action.edit
     - content.action.view
@@ -41,8 +32,14 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.tracking
-    - navigation.tabs
+    - navigation.expand
     - toc.follow
+
+extra_css:
+  - stylesheets/custom.css
+
+extra:
+  announcement: "🚀 **Google ADK for .NET** is now in public beta! Install via NuGet: `dotnet add package GoogleAdk --prerelease`"
 
 markdown_extensions:
   - admonition
@@ -60,56 +57,70 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
   - toc:
       permalink: true
 
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
-  - Core Features:
-    - Features Overview: features.md
+  - Framework Core:
+    - Overview: features.md
     - Running Agents:
       - Overview: running-agents.md
       - ADK Web: adk-web.md
       - ADK Server A2A: adk-server-a2a.md
       - Console Runner: console-runner.md
       - Custom Runner: custom-runner.md
-    - Orchestration: orchestration.md
-    - State: state.md
-    - Memory: memory.md
-    - Planning: planning.md
-    - Caching: caching.md
-    - Streaming: streaming.md
-  - Tools & Integrations:
+    - Architecture & Patterns:
+      - Orchestration: orchestration.md
+      - Planning: planning.md
+    - State & Data:
+      - Memory: memory.md
+      - State: state.md
+      - Caching: caching.md
+    - Execution:
+      - Streaming: streaming.md
+  - Extensions & Tools:
     - Tools Overview: tools.md
+    - Search & AI:
+      - Google Search Tool: google-search-tool.md
+      - Vertex AI Search Tool: vertex-ai-search-tool.md
+      - Discovery Engine Search: discovery-engine-search-tool.md
+      - Vertex AI RAG: vertex-ai-rag-retrieval-tool.md
+    - Databases:
+      - BigQuery Tools: bigquery-tools.md
+      - Cloud Spanner Tools: spanner-tools.md
+      - Bigtable Query Tool: bigtable-query-tool.md
+    - Cloud Services:
+      - Pub/Sub Message Tool: pubsub-message-tool.md
+      - Google API Tool: google-api-tool.md
+      - API Hub Tool: api-hub-tool.md
+    - Agent & OS:
+      - Agent Tool: agent-tool.md
+      - Computer Use Tool: computer-use-tool.md
+      - Auth Tool: auth-tool.md
     - Skills Toolset: skills.md
-    - Google Search Tool: google-search-tool.md
-    - Vertex AI Search Tool: vertex-ai-search-tool.md
-    - Computer Use Tool: computer-use-tool.md
-    - BigQuery Tools: bigquery-tools.md
-    - Cloud Spanner Tools: spanner-tools.md
-    - Agent Tool: agent-tool.md
-    - Auth Tool: auth-tool.md
-    - Bigtable Query Tool: bigtable-query-tool.md
-    - Pub/Sub Message Tool: pubsub-message-tool.md
-    - Google API Tool: google-api-tool.md
-    - API Hub Tool: api-hub-tool.md
-    - Discovery Engine Search Tool: discovery-engine-search-tool.md
-    - Vertex AI RAG Retrieval Tool: vertex-ai-rag-retrieval-tool.md
     - Human in the Loop: human-in-the-loop.md
     - Code Execution: code-execution.md
-    - Model Context Protocol (MCP): mcp.md
+    - Model Context Protocol: mcp.md
     - Artifact Handling: artifacts.md
-  - Models & Connectivity:
+  - Connectivity:
     - Models: models.md
     - Agent-to-Agent (A2A): a2a.md
     - Output Schema: output-schema.md
-  - Advanced Topics:
-    - Agent Lifecycle & Callbacks: agent-lifecycle.md
-    - Evaluation & Optimization: evaluation-optimization.md
-    - Rubric-Based Evaluator: rubric-based-evaluator.md
-    - Hallucination Evaluator: hallucination-evaluator.md
-    - LLM-as-a-Judge Evaluator: llm-as-judge-evaluator.md
-    - Plugins: plugins.md
-    - Testing: testing.md
-    - Feature Flags: feature-flags.md
+  - Advanced Guides:
+    - Agent Lifecycle: agent-lifecycle.md
+    - Evaluation:
+      - Overview: evaluation-optimization.md
+      - Rubric-Based Evaluator: rubric-based-evaluator.md
+      - Hallucination Evaluator: hallucination-evaluator.md
+      - LLM-as-a-Judge: llm-as-judge-evaluator.md
+    - Extensibility & Testing:
+      - Plugins: plugins.md
+      - Feature Flags: feature-flags.md
+      - Testing: testing.md
+    - Text-to-Speech (TTS): tts.md
