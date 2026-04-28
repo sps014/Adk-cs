@@ -1,0 +1,3757 @@
+# README.md
+
+# Agent Development Kit (ADK) for .NET (C#)
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
+[![NuGet](https://img.shields.io/badge/NuGet-Preview-informational)](#-installation)
+
+<html>
+    <h2 align="center">
+      <img src="docs/assets/agent-development-kit.png" width="256"/>
+    </h2>
+    <h3 align="center">
+      An open-source, code-first .NET toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.
+    </h3>
+  
+</html>
+
+Agent Development Kit (ADK) is designed for developers seeking fine-grained
+control and flexibility when building advanced AI agents that are tightly
+integrated with services in Google Cloud. It allows you to define agent
+behavior, orchestration, and tool use directly in code, enabling robust
+debugging, versioning, and deployment anywhere – from your laptop to the cloud.
+
+---
+
+> **⚠️ EXPERIMENTAL** - This project is in active development and the API will change. Builds are nightly and super frequent and may contain breaking changes. Use in production at your own risk.
+
+## ✨ Key Features
+
+### 🧠 Intelligence & Models
+
+- **Model Backends**: Support for **Gemini** (`GoogleAdk.Models.Gemini`) and **MEAI** (`GoogleAdk.Models.Meai`) for providers like Ollama. [More info](docs/models.md).
+- **Planning**: Equip agents with ReAct-style planners via natural-language processing. [More info](docs/planning.md).
+- **Caching**: Prompt and context caching using Gemini-backed implicit caching. [More info](docs/caching.md).
+
+### 🛠️ Tools & Integrations
+
+- **C# Source Gen Tools**: Effortlessly turn methods into tools using the `[FunctionTool]` attribute. [More info](docs/tools.md).
+- **Agent Skills**: Folder-based skills (`SKILL.md`, `references/`, `assets/`, `scripts/`) with `SkillToolset` and optional `SkillLoader.LoadFromDirectory` for disk-backed skills, aligned with the Python ADK pattern. [More info](docs/skills.md).
+- **MCP Support**: Full Model Context Protocol integration with dynamic tool discovery. [More info](docs/mcp.md).
+- **OpenAPI Integration**: Generate tools seamlessly from OpenAPI specs.
+- **Code Execution**: Run generated code within secure environments. [More info](docs/code-execution.md).
+- **Text-to-Speech (TTS)**: Generate audio directly from compatible LLMs like `gemini-2.5-flash-preview-tts`. [More info](docs/tts.md).
+- **Built-in Tools**: Use pre-configured tools for Computer Use (Browser Automation), Cloud Spanner (Query and Vector Search), BigQuery, Google Search, Vertex AI, code execution, and more. [More info](docs/features.md).
+
+### 🔄 Orchestration & Workflows
+
+- **Agent Orchestration**: Combine agents using `SequentialAgent`, `ParallelAgent`, or `LoopAgent` with customizable LLM pipelines. [More info](docs/orchestration.md).
+- **A2A Protocol**: Built-in support for Remote Agent-to-Agent communication (both Client and Server). [More info](docs/a2a.md).
+- **Plugins & Telemetry**: Lifecycle hooks, streaming events, and OpenTelemetry-style tracing. [More info](docs/plugins.md).
+
+### 💾 State & Memory
+
+- **State Management**: Flexible session state with placeholder injection for dynamic instructions. [More info](docs/state.md).
+- **Memory**: Built-in memory services and persistence options including EF Core storage. [More info](docs/memory.md).
+
+### 🚀 Development & Deployment
+
+- **Code-First Approach**: Define agents, tools, and logic in C# for great testability and versioning.
+- **ADK Web UI**: Embedded development server with a rich UI, REST/WebSocket APIs, and Swagger. [More info](docs/running-agents.md).
+- **Evaluation**: Tools for systematic prompt/agent tuning and LLM-as-judge scoring. [More info](docs/evaluation-optimization.md).
+
+## 🚀 Installation
+
+Install the preview package via NuGet:
+
+```bash
+dotnet add package GoogleAdk --prerelease
+```
+
+## 📚 Documentation
+
+For building, evaluating, and deploying agents, follow the docs and samples:
+
+- **[In-repo docs](docs/index.md)** (feature guides for this .NET port)
+- **[Skills](docs/skills.md)** — defining skills in code, loading from disk with `SkillLoader`, and wiring `SkillToolset` on an agent
+- **[Samples](https://github.com/sps014/GoogleAdk-cs/tree/main/samples)** — includes **`GoogleAdk.Samples.Skills`**, which loads a `.skill/` folder next to the project and runs the agent in the console
+
+## 🏁 Feature Highlight
+
+### Same Features & Familiar Interface As Other ADKs:
+
+```csharp
+// Load env variables like GOOGLE_API_KEY
+AdkEnv.Load();
+
+var rootAgent = new LlmAgent(new()
+{
+    Name = "weather_assistant",
+    Description = "An assistant that provides weather data.",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a helpful assistant. If the user asks about weather, use the GetWeatherData tool to provide the forecast.",
+    
+    // GetWeatherDataTool is generated from GetWeatherData in the format ADK expects
+    Tools = [GetWeatherDataTool]
+});
+
+// Creates a webserver that can launch the ADK web UI and other endpoints 
+await AdkServer.RunAsync(rootAgent);
+
+//await ConsoleRunner.RunAsync(rootAgent); for running in console or you can easily implement your custom runner
+
+/// <summary>
+/// Fetches the current weather data for a given location.
+/// </summary>
+/// <param name="location">The location to get the weather for (e.g., 'New York')</param>
+/// <returns>A WeatherData object containing the location and forecast</returns>
+[FunctionTool]
+static WeatherData? GetWeatherData(string location)
+{
+    return new WeatherData(location, "Sunny with a chance of rainbows");
+}
+
+public record WeatherData(string Location, string Forecast);
+```
+
+### Development UI
+
+Same as the Python Development UI. A built-in development UI to help you test,
+evaluate, debug, and showcase your agent(s).
+
+<img alt="Image" src="https://github.com/user-attachments/assets/1f8db230-b8f2-4b3c-85c8-54c32ea9e379" />
+
+### Evaluate Agents
+
+Use `GoogleAdk.Evaluation` and `GoogleAdk.Optimization` for eval sets, inference
+runs, scoring, and prompt tuning. See
+[docs/evaluation-optimization.md](docs/evaluation-optimization.md) and sample
+`GoogleAdk.Samples.EvalOptimize`.
+
+## 🤖 A2A and ADK integration
+
+Remote agent-to-agent communication uses the
+[A2A protocol](https://github.com/google/A2A/). **Client** code lives under
+`src/GoogleAdk.Core/A2a`; **server** wiring is in `GoogleAdk.ApiServer` (`MapA2aApi`).
+End-to-end coverage is in `tests/GoogleAdk.E2e.Tests`. See [docs/a2a.md](docs/a2a.md).
+
+
+## 🏗️ Building the Project
+
+To set up the project and build it from source, follow these steps:
+
+1. **Install dependencies**:
+
+   ```bash
+   dotnet restore "GoogleAdk/GoogleAdk.slnx"
+   ```
+
+2. **Build the project**:
+
+   ```bash
+   dotnet build "GoogleAdk/GoogleAdk.slnx"
+   ```
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Whether it's bug reports, feature
+requests, documentation improvements, or code contributions, please see our
+guidelines:
+
+- [General contribution guideline and flow](https://google.github.io/adk-docs/contributing-guide/).
+- Then if you want to contribute code, please read
+  [Code Contributing Guidelines](./CONTRIBUTING.md) to get started.
+
+## 📄 License and intellectual property
+
+Google’s **Agent Development Kit (ADK)**—the reference product family (for example, the Python ADK), its documentation, and related Google materials—is a **copyrighted product of Google LLC** and/or its affiliates. Google retains applicable rights in that product and in the **ADK** and **Google** trademarks.
+
+**This repository** is a **.NET port**: an open-source implementation aligned with ADK-style APIs and patterns. It is **not** described here as Google’s own first-party, directly Google-copyrighted release of ADK for .NET; copyright in this port belongs to **its contributors**, who license the code under the **Apache License, Version 2.0**. See **[LICENSE.md](LICENSE.md)** for the full terms, including how upstream ADK, this port, and trademarks are distinguished.
+
+Use, reproduction, and distribution of this repository are governed by the **Apache License, Version 2.0**; it does **not** transfer ownership of Google’s ADK, Google’s trademarks, or third-party materials to you. Third-party components may be subject to separate licenses as noted in the applicable files or notices.
+
+If you contribute code, your contributions may be subject to the contributor license arrangements described in the contribution documentation. Nothing in this README is legal advice or a waiver of Google’s or any third party’s rights except as stated in **[LICENSE.md](LICENSE.md)** and applicable licenses.
+
+---
+
+_Happy Agent Building!_
+
+---
+
+# docs/a2a.md
+
+# Agent-to-Agent (A2A) Protocol
+
+The ADK includes a complete implementation of the Agent-to-Agent (A2A) protocol. This enables decentralized, interoperable workflows where agents hosted in different processes, containers, or even languages (e.g., Python, TypeScript) can discover, invoke, and seamlessly stream data to one another.
+
+## Core Concepts
+
+- **`A2aClient`**: The client used to invoke a remote A2A endpoint.
+- **`RemoteA2aAgent`**: A local proxy class representing the remote agent. It implements `BaseAgent`, meaning you can place it inside pipelines (`SequentialAgent`), attach it as an `AgentTool`, or run it directly via a `Runner`.
+- **A2A Server**: Exposing your local agents as REST endpoints via ASP.NET Core extension methods.
+
+---
+
+## 1. Creating an A2A Server (ASP.NET Core)
+
+You can expose any locally registered agent over HTTP so that external systems can talk to it.
+
+### Quick Setup with `AdkServer`
+
+The easiest way to expose an agent over A2A is using the `AdkServer.RunAsync` utility, which automatically bootstraps the endpoints:
+
+```csharp
+using GoogleAdk.ApiServer;
+
+await AdkServer.RunAsync(myAgent, options => 
+{
+    options.EnableA2a = true;
+});
+```
+
+### Manual Setup and Wiring
+
+In your `Program.cs`, use the `AgentLoader` to register instances of your agents, then expose the endpoints using `MapA2aApi`.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.ApiServer.Server;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. Create and configure your local agent
+var myAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "support_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a highly capable support agent."
+});
+
+// 2. Initialize the AgentLoader and register the agent
+// The TempPath is used for temporary workspace generation during execution
+var loader = new AgentLoader(Path.GetTempPath());
+loader.Register("support_agent", myAgent);
+
+// 3. Inject the loader into the DI container
+builder.Services.AddSingleton(loader);
+
+var app = builder.Build();
+
+// 4. Map the standard A2A endpoints
+// This mounts the necessary routes (e.g., /a2a/support_agent/rest)
+app.MapA2aApi();
+
+await app.RunAsync();
+```
+
+Your `support_agent` is now accessible over HTTP JSON-RPC at `http://localhost:<port>/a2a/support_agent/rest`.
+
+---
+
+## 2. Consuming an A2A Endpoint (A2A Client)
+
+To connect to a remote agent and utilize it within your application, you map its endpoint to a `RemoteA2aAgent`.
+
+### Client Example
+
+```csharp
+using GoogleAdk.Core.A2a;
+using GoogleAdk.Core.Abstractions.Events;
+using GoogleAdk.Core.Abstractions.Sessions;
+using GoogleAdk.Core.Runner;
+using System;
+
+// 1. Configure the remote agent's identity and connection details
+var remoteAgentUrl = "http://localhost:5000/a2a/support_agent/rest";
+var preferredTransport = "HTTP+JSON";
+
+// Define the AgentCard. 
+// In a real-world scenario, you might fetch this dynamically from an Agent Registry or directory service.
+// For static setups, you manually define the AgentCard with the known remote URL.
+var agentCard = new AgentCard 
+{ 
+    Name = "support_agent", 
+    Url = remoteAgentUrl,
+    PreferredTransport = preferredTransport
+};
+
+// 2. Instantiate the A2A Client
+var a2aClient = new A2aClient(remoteAgentUrl, preferredTransport);
+
+// 3. Create the proxy agent
+var remoteProxyAgent = new RemoteA2aAgent(new RemoteA2aAgentConfig 
+{ 
+    Name = "remote_support_proxy", 
+    Client = a2aClient, 
+    AgentCard = agentCard 
+});
+
+// 4. Execute the remote agent exactly as you would a local agent
+var runner = new InMemoryRunner("a2a-client-app", remoteProxyAgent);
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
+{
+    AppName = "a2a-client-app",
+    UserId = "user-1"
+});
+
+var userInput = new Content 
+{ 
+    Role = "user", 
+    Parts = [new Part { Text = "Can you help me reset my password?" }] 
+};
+
+// The runner seamlessly invokes the remote REST endpoint and streams the response back
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userInput)) 
+{
+    if (evt.Content?.Parts?.FirstOrDefault()?.Text is string text)
+    {
+        Console.WriteLine($"[Remote Agent]: {text}");
+    }
+}
+```
+
+## Integrating Remote Agents into Orchestration
+
+Because `RemoteA2aAgent` implements `BaseAgent`, you can integrate it into complex workflows alongside local agents.
+
+```csharp
+// Use a remote agent as a tool inside a local LLM agent
+var localCoordinator = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coordinator",
+    Model = "gemini-2.5-flash",
+    Instruction = "You manage support workflows.",
+    Tools = [new AgentTool(remoteProxyAgent)] // Mounts the remote agent as a tool
+});
+```
+---
+
+# docs/adk-server-a2a.md
+
+# ADK Server A2A
+
+`GoogleAdk.ApiServer` exposes HTTP APIs for running agents, fetching artifacts, and enabling Agent-to-Agent (A2A) communication over HTTP.
+
+## Enabling A2A
+
+To enable the A2A endpoints and standard REST APIs, launch the ADK Server with the `EnableA2a` flag set to true:
+
+```csharp
+using GoogleAdk.ApiServer;
+
+await AdkServer.RunAsync(myAgent, options =>
+{
+    options.EnableA2a = true;
+    options.Port = 8080;
+});
+```
+
+Alternatively, if integrating ADK into an existing ASP.NET Core application, you can enable A2A via the `AddAdk` service collection extension:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAdk(myAgent, options => 
+{
+    options.EnableA2a = true;
+});
+
+var app = builder.Build();
+app.UseAdk();
+app.MapAdk();
+
+app.Run();
+```
+
+## Runtime Endpoints
+
+The key runtime endpoints include:
+
+- `POST /run` for synchronous execution
+- `POST /run_sse` for Server-Sent Events (SSE) streaming
+- `POST /run_live` for bidirectional WebSocket streaming
+
+### Synchronous Execution
+
+A simple request to `POST /run` with the user message payload will return the final sequence of events, including the model's text response and tool outputs.
+
+### Streaming with SSE
+
+When streaming via SSE using `POST /run_sse`, the server returns a stream of events as they happen. 
+
+**Note on Artifacts**: To prevent the web UI from double-rendering artifacts, the server splits events that include both text content and `ArtifactDelta` into two separate SSE events. This mirrors the Python ADK server behavior.
+
+### Live Mode
+
+`POST /run_live` opens a WebSocket connection for bidirectional audio/video streaming, allowing live interaction with models like Gemini that support native audio modalities.
+
+## Artifact Handling in the Server
+
+`RunConfig.SaveInputBlobsAsArtifacts` defaults to `true` in the API server. This means that inline file uploads passed in the HTTP request payload are automatically saved to the configured `ArtifactService` and surfaced as artifacts when running via `/run` or `/run_sse`.
+
+You can manage these artifacts using the standard artifact endpoints (e.g., `GET /artifacts/{id}`).
+
+## Agent Card Endpoint
+
+When A2A is enabled, the server automatically generates and serves an Agent Card for each registered agent. The Agent Card provides a machine-readable description of the agent, including its capabilities, tools, and endpoints, allowing other agents to dynamically discover and interact with it.
+
+You can fetch the Agent Card using a `GET` request to the following relative URL:
+
+- `GET /a2a/{agentName}/.well-known/agent-card.json`
+
+---
+
+# docs/adk-web.md
+
+# ADK Web
+
+The ADK ships with a powerful visual dashboard, **ADK Web**, which automatically mounts an ASP.NET Core server and a Blazor front-end over your agent. It visualizes the execution graph, multi-agent orchestration, tool calls, and streaming responses in real-time.
+
+It is highly recommended to use `AdkServer` when debugging complex workflows like `LoopAgent` or `ParallelAgent`.
+
+## Launching ADK Web
+
+You can launch the dashboard using a single line of code via `AdkServer.RunAsync`.
+
+```csharp
+using GoogleAdk.ApiServer;
+using GoogleAdk.Core.Agents;
+
+// Ensure your agent is fully configured
+var myComplexAgent = new SequentialAgent(new SequentialAgentConfig { /* ... */ });
+
+// Launch the interactive dashboard application with default options
+// The browser will automatically open to http://localhost:8080/dev-ui
+await AdkServer.RunAsync(myComplexAgent);
+```
+
+## Configuring ADK Server Options
+
+You can easily configure server options such as port, host, UI toggles, tracing, and A2A endpoints using the action overload. You can also hook into the underlying ASP.NET Core pipeline using `ConfigureServices` and `ConfigureApp`:
+
+```csharp
+using GoogleAdk.ApiServer;
+using Microsoft.Extensions.DependencyInjection;
+
+await AdkServer.RunAsync(myComplexAgent, options => 
+{
+    options.Port = 9000;
+    options.ShowSwaggerUI = true;
+    options.EnableA2a = true;
+    
+    // Advanced: supply custom CORS policy
+    options.ConfigureCors = policy => 
+        policy.WithOrigins("http://my-frontend.com").AllowAnyMethod().AllowAnyHeader();
+
+    // Hook into the underlying IServiceCollection
+    options.ConfigureServices = services => 
+    {
+        services.AddSingleton<MyCustomService>();
+    };
+
+    // Hook into the underlying IApplicationBuilder
+    options.ConfigureApp = app => 
+    {
+        app.UseMyCustomMiddleware();
+    };
+});
+```
+
+## ASP.NET Core Integration
+
+If you already have an existing ASP.NET Core application, you don't need to use `AdkServer.RunAsync()`. You can seamlessly integrate the ADK directly into your pipeline using standard ASP.NET Core extension methods.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// Add your existing services...
+builder.Services.AddControllers();
+
+// 1. Add ADK services to the container
+builder.Services.AddAdk(myComplexAgent, options => 
+{
+    options.EnableA2a = true;
+    // Note: Host/Port options are ignored here as your ASP.NET host controls binding
+});
+
+var app = builder.Build();
+
+// Add your existing middleware...
+app.UseHttpsRedirection();
+
+// 2. Add ADK middleware (Swagger UI, CORS, WebSockets, ADK Web UI)
+app.UseAdk();
+
+// 3. Map ADK API endpoints and fallback routes
+app.MapAdk();
+app.MapControllers();
+
+app.Run();
+```
+
+
+---
+
+# docs/agent-lifecycle.md
+
+# Agent Lifecycle & Callbacks
+
+The Agent Development Kit (ADK) provides a rich set of lifecycle callbacks that allow you to execute custom logic at various stages of an agent's execution. These callbacks are essential for tasks like state management, auditing, dynamic system instructions, and emitting custom events.
+
+> **Note:** Unlike older architectures that required complex lists of delegates, the C# ADK uses a simple **single-cast delegate** model for configuration, ensuring predictability and consistency—especially in asynchronous workflows.
+
+## The Execution Pipeline
+
+When a `Runner` invokes an agent, the execution follows a well-defined pipeline. If the agent is an `LlmAgent` (which represents the vast majority of agents), the pipeline extends to cover interactions with the underlying language model and any tools.
+
+```mermaid
+flowchart TD
+    Start([Agent Started]) --> BeforeAgent[BeforeAgentCallback]
+    BeforeAgent --> ModelLoop{Model Loop}
+    
+    subgraph ModelLoop [Model Loop]
+        direction TB
+        BeforeModel[BeforeModelCallback] --> LLM[LLM Execution]
+        LLM -- Success --> AfterModel[AfterModelCallback]
+        LLM -- Exception --> OnModelError[OnModelErrorCallback]
+        OnModelError --> AfterModel
+        
+        AfterModel --> ToolCheck{Tools Requested?}
+        ToolCheck -- Yes --> ToolLoop
+        ToolCheck -- No --> EndModelLoop([End Model Loop])
+        
+        subgraph ToolLoop [Tool Loop]
+            direction TB
+            BeforeTool[BeforeToolCallback] --> ExecuteTool[Tool Execution]
+            ExecuteTool -- Success --> AfterTool[AfterToolCallback]
+            ExecuteTool -- Exception --> OnToolError[OnToolErrorCallback]
+            OnToolError --> AfterTool
+        end
+        
+        AfterTool --> BeforeModel
+    end
+    
+    EndModelLoop --> AfterAgent[AfterAgentCallback]
+    AfterAgent --> Finish([Agent Completed])
+```
+
+1. **Agent Started**: The agent is initialized and the session context is loaded.
+2. **`BeforeAgentCallback`**: Executed before the agent begins its core logic.
+3. **Model Loop** (for `LlmAgent`):
+   - **`BeforeModelCallback`**: Executed just before the LLM is called. You can inspect or modify the `LlmRequest` here.
+   - **LLM Execution**: The LLM processes the request.
+     - *If the LLM fails:* **`OnModelErrorCallback`** is triggered.
+   - **`AfterModelCallback`**: Executed immediately after the LLM responds.
+   - **Tool Loop** (if the LLM requests tool execution):
+     - **`BeforeToolCallback`**: Executed before a specific tool is run.
+     - **Tool Execution**: The tool's `RunAsync` method is called.
+       - *If the tool fails:* **`OnToolErrorCallback`** is triggered.
+     - **`AfterToolCallback`**: Executed after the tool successfully completes.
+4. **Agent Completed**: The agent finishes processing.
+5. **`AfterAgentCallback`**: Executed before control is returned to the runner.
+
+## Configuring Callbacks
+
+Callbacks are configured directly on the agent's configuration object (e.g., `BaseAgentConfig` or `LlmAgentConfig`). Each property accepts a single asynchronous delegate.
+
+### Agent-Level Callbacks
+
+Available on all agents deriving from `BaseAgent`:
+
+| Callback | Signature | Description |
+| :--- | :--- | :--- |
+| **`BeforeAgentCallback`** | `Func<AgentContext, Task<Content?>>` | Fires before the agent starts processing. Return a `Content` object to short-circuit and return immediately, or `null` to continue. |
+| **`AfterAgentCallback`** | `Func<AgentContext, Task<Content?>>` | Fires after the agent has completed processing. Use to emit a final event (e.g., a summary). Return `null` to skip emitting an extra event. |
+
+### Model & Tool Callbacks
+
+Available exclusively on `LlmAgent`:
+
+| Callback | Signature | Description |
+| :--- | :--- | :--- |
+| **`BeforeModelCallback`** | `Func<AgentContext, LlmRequest, Task<LlmResponse?>>` | Modify the request (e.g., system instructions). Return an `LlmResponse` to bypass the LLM call entirely. |
+| **`AfterModelCallback`** | `Func<AgentContext, LlmResponse, Task<LlmResponse?>>` | Inspect or modify the response before processing (e.g., logging token usage). |
+| **`OnModelErrorCallback`** | `Func<AgentContext, LlmRequest, Exception, Task<LlmResponse?>>` | Fires if the LLM provider throws an exception. Return a fallback `LlmResponse` to recover gracefully. |
+| **`BeforeToolCallback`** | `Func<IBaseTool, Dictionary<string, object?>, AgentContext, Task<Dictionary<string, object?>?>>` | Fires before a tool executes. Return a dictionary to bypass execution and mock the result. |
+| **`AfterToolCallback`** | `Func<IBaseTool, Dictionary<string, object?>, AgentContext, Dictionary<string, object?>, Task<Dictionary<string, object?>?>>` | Fires after a tool executes. Modify and return a new dictionary to change the output. |
+| **`OnToolErrorCallback`** | `Func<IBaseTool, Dictionary<string, object?>, AgentContext, Exception, Task<Dictionary<string, object?>?>>` | Fires if a tool throws an exception. Return a valid result dictionary to suppress the error. |
+
+## Example: Using Callbacks
+
+Here is an example demonstrating several lifecycle callbacks, including recovering from an LLM provider error:
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "callback_demo_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a helpful assistant.",
+    
+    // Inject a dynamic instruction before the model runs
+    BeforeModelCallback = (ctx, request) => 
+    {
+        request.Config ??= new GenerateContentConfig();
+        request.Config.SystemInstruction += "\nAlways be extremely polite.";
+        return Task.FromResult<LlmResponse?>(null);
+    },
+
+    // Catch and recover from LLM provider errors (e.g. rate limits)
+    OnModelErrorCallback = (ctx, request, ex) =>
+    {
+        Console.WriteLine($"LLM Error: {ex.Message}");
+        // Return a fallback response to keep the conversation flowing
+        var fallback = new LlmResponse { Text = "I'm currently experiencing high traffic. Please try again later." };
+        return Task.FromResult<LlmResponse?>(fallback);
+    },
+
+    // Catch and recover from tool errors
+    OnToolErrorCallback = (tool, args, ctx, ex) =>
+    {
+        Console.WriteLine($"Tool {tool.Name} failed: {ex.Message}");
+        // Return a mock result to prevent the agent from crashing
+        var recoveryResult = new Dictionary<string, object?> { ["error"] = "Service temporarily unavailable" };
+        return Task.FromResult<Dictionary<string, object?>?>(recoveryResult);
+    },
+
+    // Execute logic after the agent finishes
+    AfterAgentCallback = (ctx) =>
+    {
+        Console.WriteLine("Agent execution completed successfully.");
+        return Task.FromResult<Content?>(null);
+    }
+});
+```
+
+## Callbacks vs. Plugins
+
+Callbacks are excellent for configuring specific behavior on a **single agent instance**. However, if you need logic that applies to *all* agents in your application (like global telemetry, auditing, or security constraints), you should use the **[Plugin System](plugins.md)** instead. Plugins tap into these exact same lifecycle events but operate globally at the `Runner` level.
+
+---
+
+# docs/agent-tool.md
+
+# Agent Tool
+
+The `AgentTool` allows you to treat an entire `BaseAgent` as a callable tool, forming the basis of **hierarchical agent orchestration**.
+
+## Overview
+
+By wrapping a specialized sub-agent in an `AgentTool`, a "coordinator" agent can delegate complex tasks. The LLM decides to invoke the sub-agent just like any other function.
+
+## Usage
+
+Instantiate a sub-agent, wrap it, and add it to the parent agent's `Tools` list.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+// 1. Create specialized sub-agent
+var codingAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coder",
+    Model = "gemini-2.5-pro",
+    Instruction = "Write pristine C# code. Do not explain, only code."
+});
+
+// 2. Create the coordinator
+var coordinatorAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coordinator",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a tech lead. Use the 'coder' tool to generate code, then review it.",
+    Tools = [ new AgentTool(codingAgent) ]
+});
+```
+
+## Flow
+
+1. The coordinator decides it needs code and calls `coder`.
+2. The ADK spins up an ephemeral runner for `coder` with the prompt.
+3. The `coder` agent runs to completion.
+4. The final response is returned to the coordinator as JSON.
+5. The coordinator resumes execution with the code.
+---
+
+# docs/api-hub-tool.md
+
+# API Hub Tool
+
+The `ApiHubTool` integrates your agent with Google Cloud API Hub, allowing the LLM to search for, discover, and understand enterprise APIs registered within your organization.
+
+## Usage
+
+Ensure your application is authenticated and has permissions to read from the API Hub in the target project.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "api_discoverer",
+    Model = "gemini-2.5-flash",
+    Instruction = "You help developers find internal APIs. Use the API Hub tool to search for enterprise APIs.",
+    Tools = [ new ApiHubTool() ]
+});
+```
+
+### LLM Parameters
+The LLM invokes this tool with:
+- `projectId` (string, required) 
+- `location` (string, required) - e.g., "global".
+- `searchQuery` (string, required) - e.g., "payments api".
+
+The tool returns a list of matching APIs and their descriptions for the LLM to synthesize.
+---
+
+# docs/artifacts.md
+
+# Artifacts
+
+Artifacts are explicit outputs produced by agents during a session. While conversation text is transient, artifacts are tangible assets like generated CSV files, compiled source code, data reports, or created images.
+
+This page consolidates artifact guidance: lifecycle APIs, storage backends, runner setup, agent helpers, tool usage, and the HTTP API surface.
+
+## Lifecycle and core APIs
+
+Artifacts are scoped to `app + user + session` and support versioning. The core service interface includes:
+
+- Save (`SaveArtifactAsync`)
+- Load (`LoadArtifactAsync`, latest or specific version)
+- List keys (`ListArtifactKeysAsync`)
+- List versions (`ListVersionsAsync`, `ListArtifactVersionsAsync`)
+- Delete (`DeleteArtifactAsync`)
+
+These APIs are implemented by `InMemoryArtifactService`, `FileArtifactService`, and `GcsArtifactService`.
+
+## Artifact services
+
+The ADK includes several built-in services to handle artifact storage depending on your environment:
+
+| Service | Storage Location | Best For |
+| :--- | :--- | :--- |
+| **`InMemoryArtifactService`** | Memory | Unit testing or ephemeral CLI applications. |
+| **`FileArtifactService`** | Local Filesystem | Desktop applications or local development. |
+| **`GcsArtifactService`** | Google Cloud Storage | Production cloud environments (supports versioning). |
+
+## Configuring artifacts in the runner
+
+Agents rely on the `Runner` to provide access to the Artifact Service. Configure it when bootstrapping your application:
+
+```csharp
+using GoogleAdk.Core.Runner;
+using GoogleAdk.Core.Artifacts;
+
+// Configure the runner to save artifacts to the local "output_files" folder
+var runner = new Runner(new RunnerConfig
+{
+    AppName = "my_app",
+    Agent = myAgent,
+    ArtifactService = new FileArtifactService("output_files")
+});
+```
+
+## Agent helpers (`AgentContext`)
+
+Inside tools or agent callbacks, use `AgentContext` helpers to persist artifacts and automatically emit artifact deltas:
+
+```csharp
+// Saves the artifact and records the new version in EventActions.ArtifactDelta
+await context.SaveArtifactAsync("summary.txt", new Part { Text = "Final report." });
+
+// Loads an artifact (latest by default)
+var part = await context.LoadArtifactAsync("summary.txt");
+```
+
+`SaveArtifactAsync` updates the `ArtifactDelta` collection so streaming clients can render artifacts as they appear.
+
+## User uploads and `SaveFilesAsArtifactsPlugin`
+
+When using the web UI or a client that sends `InlineData` as part of a **user message**, the `SaveFilesAsArtifactsPlugin` intercepts those parts, stores them as artifacts, and replaces the inline data with a `FileData` reference (`artifact://...`). This is primarily for **user uploads**, not for model output.
+
+If you want model-produced files to become artifacts, use `AgentContext.SaveArtifactAsync` from a tool or agent callback.
+
+## Saving and loading artifacts directly
+
+If a tool or external process needs to read or write artifacts without `AgentContext`, use the service APIs directly:
+
+```csharp
+using GoogleAdk.Core.Artifacts;
+using GoogleAdk.Core.Abstractions.Models;
+
+var service = new FileArtifactService("my_artifacts_folder");
+
+await service.SaveArtifactAsync(new SaveArtifactRequest
+{
+    AppName = "my_app",
+    UserId = "user_123",
+    SessionId = "session_456",
+    Filename = "summary_report.txt",
+    Artifact = new Part { Text = "This is the final summary output." }
+});
+
+var loadedPart = await service.LoadArtifactAsync(new LoadArtifactRequest
+{
+    AppName = "my_app",
+    UserId = "user_123",
+    SessionId = "session_456",
+    Filename = "summary_report.txt"
+});
+
+Console.WriteLine(loadedPart?.Text);
+```
+
+## Loading artifacts from tools
+
+The built-in `load_artifacts` tool can be exposed to models when you want the model to read artifacts (for example, a user upload saved by the UI):
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "artifact_reader",
+    Model = "gemini-2.5-flash",
+    Tools = [new LoadArtifactsTool()]
+});
+```
+
+The tool returns text directly when available and provides a short descriptor for binary content.
+
+## HTTP API: artifact routes
+
+The API server exposes REST endpoints for artifact retrieval and listing. The key routes are:
+
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| `GET` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts` | List all artifacts for a session. |
+| `GET` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts/{artifactName}/versions` | List all versions of a specific artifact. |
+| `GET` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts/{artifactName}/versions/{versionId}` | Retrieve a specific version of an artifact. |
+| `GET` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts/{artifactName}/versions/{versionId}/metadata` | Retrieve metadata for a specific version. |
+| `GET` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts/{artifactName}/versions/metadata` | Retrieve metadata for all versions. |
+| `DELETE` | `/apps/{appName}/users/{userId}/sessions/{sessionId}/artifacts/{artifactName}` | Delete an artifact and all its versions. |
+
+If a stored artifact only has text, the API wraps it into `InlineData` so the web UI can treat it like a file download.
+
+## Streaming semantics and `ArtifactDelta`
+
+When running via SSE (`/run_sse`), events that contain both content and `ArtifactDelta` are split into two SSE events to prevent double-rendering in the web UI. Clients should handle a pure artifact event (no content) and render newly available artifacts based on the `ArtifactDelta` map.
+
+## Sample: `ArtifactsWeb`
+
+For a complete end-to-end example (uploads, storage, and display), see `GoogleAdk.Samples.ArtifactsWeb`.
+---
+
+# docs/auth-tool.md
+
+# Auth Tool and Authentication
+
+The ADK handles authenticated tools using `AuthConfig` and `AgentContext`. When a tool requires user credentials (like OAuth2), the ADK halts the agent, signals the frontend, and resumes once authorized.
+
+## Usage
+
+Define an `AuthConfig` and request credentials inside your `[FunctionTool]`.
+
+```csharp
+using GoogleAdk.Core.Abstractions.Auth;
+using GoogleAdk.Core.Abstractions.Tools;
+using GoogleAdk.Core.Agents;
+
+public static partial class AuthTools
+{
+    public static AuthConfig CalendarAuth { get; } = new AuthConfig
+    {
+        CredentialKey = "calendar_oauth",
+        AuthScheme = new AuthScheme
+        {
+            Type = AuthSchemeType.OAuth2,
+            Flows = new OAuth2Flows
+            {
+                AuthorizationCode = new OAuth2Flow
+                {
+                    AuthorizationUrl = "https://accounts.example.com/auth",
+                    TokenUrl = "https://oauth2.example.com/token",
+                }
+            }
+        }
+    };
+
+    [FunctionTool(Name = "calendar_events")]
+    public static object? GetEvents(AgentContext ctx)
+    {
+        var credential = ctx.GetAuthResponse(CalendarAuth);
+        
+        if (credential == null)
+        {
+            // Request credentials; the ADK will halt the tool call here
+            ctx.RequestCredential(CalendarAuth);
+            return new { status = "auth_required" };
+        }
+
+        // Action utilizing credential.OAuth2Auth.AccessToken
+        return new { title = "Project Sync" };
+    }
+}
+```
+
+## Runner Integration
+
+Monitor output events for `RequestedAuthConfigs` and pause your app to perform the OAuth flow.
+
+```csharp
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+{
+    if (evt.Actions.RequestedAuthConfigs.Count > 0)
+    {
+        // PAUSE EXECUTION: Output auth URL and wait for user token
+        var config = evt.Actions.RequestedAuthConfigs.Values.First();
+        break; 
+    }
+}
+```
+
+Resume with the new `stateDelta`:
+
+```csharp
+var authState = new Dictionary<string, object?>
+{
+    ["temp:" + AuthTools.CalendarAuth.CredentialKey] = new AuthCredential
+    {
+        AuthType = AuthCredentialType.OAuth2,
+        OAuth2Auth = new OAuth2Auth { AccessToken = "ya29.token" }
+    }
+};
+
+// Resume execution
+await foreach (var evt in runner.RunAsync("user-1", session.Id, followup, authState)) { }
+```
+---
+
+# docs/bigquery-tools.md
+
+# BigQuery Tools
+
+The `GoogleAdk.Core.Tools` namespace includes two tools for working with Google Cloud BigQuery:
+- **`BigQueryMetadataTool`**: Fetches datasets, tables, and schemas so the LLM can "explore" the database structure.
+- **`BigQueryQueryTool`**: Executes standard SQL queries.
+
+## Prerequisites
+
+The host application must be authenticated with Google Cloud (via ADC or `GOOGLE_APPLICATION_CREDENTIALS`) and have permissions to execute queries in the target project.
+
+## Usage
+
+Attach the tools to your agent and provide clear instructions. The LLM will automatically determine when to explore metadata and when to execute a query.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var analystAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "data_analyst",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a data analyst. Explore the dataset structure, then query to answer questions.",
+    Tools = [
+        new BigQueryMetadataTool(), 
+        new BigQueryQueryTool()
+    ]
+});
+```
+
+### Execution Flow
+
+1. User asks: *"Top 5 countries in `my-project.sales.2024`?"*
+2. LLM calls `bigquery_metadata` to find columns (e.g., `country_code`, `total_amount`).
+3. LLM calls `bigquery_query` with generated SQL: `SELECT country_code, SUM(total_amount)...`
+4. The tool executes the query via the BigQuery client and returns JSON.
+5. The LLM formats the final answer.
+---
+
+# docs/bigtable-query-tool.md
+
+# Bigtable Query Tool
+
+The `BigtableQueryTool` enables your LLM agents to read rows and row ranges directly from Google Cloud Bigtable.
+
+## Usage
+
+Provide the tool to your agent and ensure your application has the `roles/bigtable.reader` IAM role.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "bigtable_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "Use the bigtable_query tool to find user profiles. Use projectId 'my-project', instanceId 'primary', and tableId 'users'.",
+    Tools = [ new BigtableQueryTool() ]
+});
+```
+
+### LLM Parameters
+When the LLM decides to query Bigtable, it will pass:
+- `projectId`, `instanceId`, `tableId` (required)
+- `rowKey` (optional) - Fetches a single exact row.
+- `rowPrefix` (optional) - Fetches all rows starting with this prefix.
+- `limit` (optional) - Limits the number of rows returned.
+---
+
+# docs/caching.md
+
+# Prompt Caching (Context Caching)
+
+Large language models charge for the number of tokens processed. In use cases like code analysis or iterative questioning over huge documents, sending the identical, massive context payload repeatedly incurs significant latency and token costs.
+
+The ADK leverages **Context Caching** (currently supported natively by Gemini models) to cache massive contexts securely server-side.
+
+## Enabling Prompt Caching
+
+To enable prompt caching for an agent, simply provide a `ContextCacheConfig` to your `LlmAgentConfig`. The `ContextCacheRequestProcessor` will dynamically evaluate the conversational history. If the context meets the caching criteria (min tokens), it builds a cache request; if the context was recently cached, the model leverages the stored payload without reprocessing the tokens.
+
+The cache implementation relies on cryptographic SHA-256 fingerprinting. The ADK calculates a fingerprint of your agent's system instruction, available tools, and the message history. If a matching fingerprint is found in your session's event history, the ADK automatically intercepts the request and injects the `cache_name` into the LLM payload, skipping the redundant upload.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Context;
+using GoogleAdk.Models.Gemini;
+
+// Simulating a large document to pass as context
+var largeDocument = "The history of the world is vast. " + new string('A', 50000);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "cache_agent",
+    Model = "gemini-1.5-pro", // Caching is most valuable on large reasoning models
+    
+    // Enables the ContextCacheRequestProcessor
+    ContextCacheConfig = new ContextCacheConfig
+    {
+        CacheIntervals = 10, // Number of turns to reuse the cache before forcing a refresh
+        TtlSeconds = 3600,   // Cache time-to-live (1 hour)
+        MinTokens = 10       // Minimum threshold of tokens required to trigger cache creation. 
+                             // Gemini API restricts this to >32k tokens in production.
+    }
+});
+
+var runner = new InMemoryRunner("cache-app", agent);
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest { AppName = "cache-app", UserId = "user" });
+
+// The first turn will take longer as it creates the Cache remotely
+var turn1 = new Content { Role = "user", Parts = [new Part { Text = $"{largeDocument}\nWhat is this document about?" }] };
+await foreach (var evt in runner.RunAsync("user", session.Id, turn1))
+{
+    if (evt.IsFinalResponse() && evt.CacheMetadata != null)
+    {
+        Console.WriteLine($"Cache created! Name: {evt.CacheMetadata.CacheName}");
+    }
+}
+
+// The second turn calculates a matching fingerprint and uses the existing cache!
+var turn2 = new Content { Role = "user", Parts = [new Part { Text = "Tell me more about the history section." }] };
+await foreach (var evt in runner.RunAsync("user", session.Id, turn2))
+{
+    if (evt.IsFinalResponse() && evt.CacheMetadata != null)
+    {
+        Console.WriteLine($"Cache Reused! Invocations: {evt.CacheMetadata.InvocationsUsed}");
+    }
+}
+```
+
+**Benefits of Context Caching:**
+- **Cost Reduction**: Reused context blocks are typically billed at a fraction of the cost.
+- **Latency Optimization**: Substantially reduces time-to-first-byte (TTFB) since the model circumvents re-tokenizing massive prefix prompts or documents.
+- **Improved Performance on Repetitive Queries**: Highly effective for applications building "Chat with PDF" workflows or complex data extraction pipelines.
+---
+
+# docs/code-execution.md
+
+# Code Execution
+
+The ADK natively integrates Google's Code Execution engine, allowing the underlying model to dynamically generate, compile, and execute code (such as Python scripts) during a conversational turn, evaluating the output immediately.
+
+This is exceptionally powerful for data processing, advanced mathematics, or retrieving precise programmatic outputs without writing bespoke external tools.
+
+## Enabling Built-in Code Execution
+
+To grant an agent the ability to execute code, simply attach a `BuiltInCodeExecutor` to the `LlmAgentConfig.CodeExecutor` property. The framework will automatically instruct the LLM on how to utilize it.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.CodeExecutors;
+using GoogleAdk.Core.Runner;
+
+// 1. Configure the LLM to use code execution capabilities
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "code_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "Use Python code execution for complex calculations.",
+    // Attach the executor
+    CodeExecutor = new BuiltInCodeExecutor()
+});
+
+var runner = new InMemoryRunner("code-exec-app", agent);
+
+var userMessage = new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Calculate the mean and standard deviation of [3, 5, 8, 10, 12]." }]
+};
+
+// 2. Run the agent.
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+{
+    if (evt.Content?.Parts == null) continue;
+
+    foreach (var part in evt.Content.Parts)
+    {
+        // 3. Inspect the code the LLM generated and ran
+        if (part.ExecutableCode?.Code != null)
+        {
+            Console.WriteLine($"[Executed Python]:\n{part.ExecutableCode.Code}\n");
+        }
+
+        // 4. Inspect the exact output the LLM received from the python runtime
+        if (part.CodeExecutionResult != null)
+        {
+            Console.WriteLine($"[Result]:\n{part.CodeExecutionResult.Output}\n");
+        }
+
+        // 5. The LLM's final natural language conclusion
+        if (!string.IsNullOrWhiteSpace(part.Text))
+        {
+            Console.WriteLine($"Agent: {part.Text}");
+        }
+    }
+}
+```
+
+The output stream will demonstrate the agent writing a block of Python code utilizing standard libraries, capturing the `stdout` response, and formulating a final user-friendly reply based on that calculation.
+---
+
+# docs/computer-use-tool.md
+
+# Computer Use Tool
+
+The `ComputerUseTool` allows LLMs to perform automated, screen-based interactions. It bridges text-based AI models with graphical user interfaces, enabling the agent to "see" the screen, click elements, and type text.
+
+## Overview
+
+The `ComputerUseTool` relies on an `IComputerDriver` that abstracts browser automation.
+- **`PlaywrightComputerDriver`**: Drives Chromium, captures viewports, and executes real mouse/keyboard events.
+- **`ConsoleComputerDriver`**: A lightweight, text-only driver for HTTP scraping.
+
+## Usage
+
+Instantiate a driver, wrap it in a `ComputerUseToolset`, and assign it to the agent.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+using GoogleAdk.Samples.ComputerUse.Drivers;
+
+// 1. Initialize the driver
+var driver = new PlaywrightComputerDriver();
+await driver.InitializeAsync();
+
+// 2. Attach to the agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "automation_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a web automation bot. Use computer_use to interact with elements.",
+    Tools = [ new ComputerUseToolset(driver) ]
+});
+```
+
+### LLM Commands
+
+The LLM issues JSON commands (e.g., `{"action": "left_click", "coordinate": [450, 300]}`) which the `ComputerUseToolset` automatically maps to the driver's `ClickAsync`, `TypeAsync`, and `PressKeyAsync` methods.
+
+*Important:* Ensure you call `await driver.CloseAsync();` when shutting down to clean up processes.
+---
+
+# docs/console-runner.md
+
+# Console Runner
+
+For rapid development and CLI applications, the ADK provides a robust `ConsoleRunner` class built on top of `Spectre.Console`. It offers a beautiful, interactive terminal experience with support for streaming, debug logging, and file attachments.
+
+## Basic Usage
+
+To run an agent in the console with default settings, simply pass your agent to `ConsoleRunner.RunAsync`:
+
+```csharp
+using GoogleAdk.Core.Runner;
+
+var agent = new LlmAgent(new LlmAgentConfig { Name = "my-agent", Model = "gemini-2.5-flash" });
+
+await ConsoleRunner.RunAsync(agent);
+```
+
+This will automatically:
+1. Initialize an `InMemorySessionService`, `InMemoryArtifactService`, and `InMemoryMemoryService`.
+2. Start a continuous chat loop.
+3. Display model responses, tool calls, and subagent transfers in styled panels.
+
+## Customizing the Console Runner
+
+You can customize the `ConsoleRunner` behavior, such as toggling debug mode or enabling streaming, using the configuration delegate:
+
+```csharp
+await ConsoleRunner.RunAsync(agent, config =>
+{
+    config.DebugMode = true;       // Show tool calls and subagent transfers (default: true)
+    config.EnableStreaming = true; // Stream text chunk-by-chunk (default: false)
+    config.AppName = "my-cli-app"; // Sets the session AppName
+    config.InitialMessage = "hi";  // Send an initial message automatically on startup
+    config.CloseOnFinish = true;   // Close the runner after the first turn completes
+    
+    // You can override the default in-memory services here for persistence
+    // config.SessionService = new EfCoreSessionService(...);
+});
+```
+
+### Passing Initial State
+
+If your agent requires initial context or state (like an injected OAuth credential or a predefined data payload), you can pass an `initialState` dictionary to `ConsoleRunner.RunAsync`. This state is applied to the very first execution turn.
+
+```csharp
+var initialState = new Dictionary<string, object?>
+{
+    ["temp:my-auth-key"] = myAuthCredential
+};
+
+await ConsoleRunner.RunAsync(agent, configure: null, initialState: initialState);
+```
+
+### Initial Message and Auto-Close
+
+If you want the runner to execute a single task automatically without waiting for user input, you can use `InitialMessage` and `CloseOnFinish`. This is especially useful for scripts or CI/CD environments.
+
+```csharp
+await ConsoleRunner.RunAsync(agent, config =>
+{
+    config.InitialMessage = "Summarize the latest tech news";
+    config.CloseOnFinish = true; // Exits the application after the agent finishes its response
+});
+```
+
+## Features
+
+### Debug Output
+When `DebugMode` is enabled, the console runner will automatically intercept and display:
+- **Tool Calls**: Shows the tool name and JSON-serialized arguments.
+- **Tool Results**: Shows the execution outcome of the tool.
+- **Subagent Transfers**: Clearly logs when control shifts from one agent to another (e.g., in a `SequentialAgent` or `LoopAgent`).
+
+### Streaming
+If `EnableStreaming` is true, the `ConsoleRunner` buffers incoming text chunks and dynamically updates the terminal with a `streaming...` indicator, providing a responsive experience for the user.
+
+### File Attachments
+The `ConsoleRunner` supports attaching local files to your prompts via a special CLI command.
+
+To attach a file, type `/attach` followed by one or more file paths in the console prompt:
+
+```bash
+You: /attach my_document.pdf image.png
+```
+
+The runner will read the files, convert them to Base64 `InlineData`, and stage them. On your next chat message, these files will be sent to the model along with your text.
+
+### Generated Artifacts
+If the model generates artifacts (like code execution results or saved files), the `ConsoleRunner` intercepts these `FileData` and `CodeExecutionResult` parts and displays them cleanly in the console UI.
+
+## Exiting
+The runner maintains a continuous loop. You can exit by:
+- Typing `/bye` or `quit`
+- Pressing `Ctrl+C` (the runner handles `Console.CancelKeyPress` gracefully)
+
+---
+
+# docs/custom-runner.md
+
+# Custom Runner
+
+While the ADK provides `AdkServer`, `ConsoleRunner`, and `InMemoryRunner` for convenience, production applications often require a custom execution environment to integrate deeply with existing architectures (like Discord bots, WPF apps, background worker services, or custom APIs).
+
+You can achieve this by instantiating the core `Runner` class directly.
+
+## Building a Custom Runner
+
+To build a custom runner, you need to configure the three core storage services: Sessions, Artifacts, and Memory.
+
+```csharp
+using GoogleAdk.Core.Runner;
+using GoogleAdk.Sessions.EfCore;
+using GoogleAdk.Core.Artifacts;
+using GoogleAdk.Core.Memory;
+
+// 1. Initialize persistent services
+var sessionService = new EfCoreSessionService(dbFactory);
+var artifactService = new FileArtifactService("./adk_artifacts");
+var memoryService = new InMemoryMemoryService(); // Replace with persistent memory if needed
+
+// 2. Configure the Runner
+var runnerConfig = new RunnerConfig
+{
+    AppName = "my_custom_bot",
+    Agent = myAgent,
+    SessionService = sessionService,
+    ArtifactService = artifactService,
+    MemoryService = memoryService,
+    RunConfig = new RunConfig
+    {
+        MaxLlmCalls = 15,
+        SaveInputBlobsAsArtifacts = true
+    }
+};
+
+var runner = new Runner(runnerConfig);
+```
+
+## Invoking the Runner
+
+Once configured, you must explicitly manage the session lifecycle before invoking `RunAsync`.
+
+```csharp
+// 3. Create or retrieve a session for the user
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
+{
+    AppName = "my_custom_bot",
+    UserId = "discord-user-123"
+});
+
+// 4. Construct the user payload
+var userMessage = new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Hello, what can you do?" }]
+};
+
+// 5. Run the invocation stream
+await foreach (var evt in runner.RunAsync("discord-user-123", session.Id, userMessage))
+{
+    // Process the event stream depending on your application needs
+    if (evt.Partial == true && evt.Content?.Parts != null)
+    {
+        // Handle streaming text chunks
+    }
+    
+    if (evt.IsFinalResponse() && evt.Content?.Parts != null)
+    {
+        // Handle the final completed message
+        var text = evt.StringifyContent();
+        await SendMessageToDiscord(text);
+    }
+    
+    var calls = evt.GetFunctionCalls();
+    if (calls.Count > 0)
+    {
+        // Optionally log or track tool calls
+    }
+}
+```
+
+## Abstracting with a Wrapper
+
+If your application has a specific domain (like a Discord bot or a specific UI framework), you can wrap this logic in your own static or instance runner class, similar to how the `ConsoleRunner` is implemented in the ADK Core. This allows you to encapsulate the `RunAsync` loop and translate ADK `Event` objects directly into your domain's UI or messaging primitives.
+
+---
+
+# docs/discovery-engine-search-tool.md
+
+# Discovery Engine Search Tool
+
+!!! warning "Gemini & Vertex AI Only"
+    This tool leverages Google Cloud's Discovery Engine APIs and is designed for Gemini models running via Vertex AI.
+
+The `DiscoveryEngineSearchTool` (often used interchangeably with `VertexAiSearchTool`) provides access to Google Cloud's Discovery Engine to perform semantic searches over indexed PDFs, HTML, and unstructured text.
+
+## Usage
+
+Initialize the tool using either a `datastore` or an `engine` resource ID:
+
+- **Datastore**: `projects/{project}/locations/{location}/collections/default_collection/dataStores/{datastore_id}`
+- **Engine**: `projects/{project}/locations/{location}/collections/default_collection/engines/{engine_id}`
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var datastoreId = "projects/my-project/locations/global/collections/default_collection/dataStores/hr-docs";
+
+var hrAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "hr_assistant",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are an HR assistant. Find policies in the HR datastore.",
+    Tools = [new DiscoveryEngineSearchTool(datastore: datastoreId)]
+});
+```
+
+## Vs. RAG Retrieval Tool
+
+Use `DiscoveryEngineSearchTool` when you want the agent to explicitly decide *when* and *what* to search via a standard function call. Use `VertexAiRagRetrievalTool` to integrate the retrieval directly into the backend generation step.
+---
+
+# docs/evaluation-optimization.md
+
+# Evaluation & Optimization
+
+The ADK includes dedicated libraries (`GoogleAdk.Evaluation`, `GoogleAdk.Evaluation.EfCore`, and `GoogleAdk.Optimization`) to systematically measure and improve the quality of your LLM prompts and agent responses.
+
+## 1. Running Evaluations (LLM-as-a-Judge)
+
+Instead of relying on manual testing, you can use a separate LLM agent (the "Judge") to mathematically grade the responses of your core agent based on defined criteria.
+
+### Setting up the Evaluation Set and Manager
+
+An `EvalSet` defines a collection of test cases with simulated user conversations. The ADK includes `EfCoreEvalSetManager` to seamlessly persist your evaluation sets and runs using Entity Framework Core.
+
+```csharp
+using GoogleAdk.Evaluation;
+using GoogleAdk.Evaluation.EfCore;
+using GoogleAdk.Evaluation.Models;
+using Microsoft.EntityFrameworkCore;
+
+// Set up the EF Core context and manager
+var dbOptions = new DbContextOptionsBuilder<AdkEvaluationDbContext>()
+    .UseInMemoryDatabase("EvalSampleDb") // Use SQL Server, PostgreSQL, etc. in production
+    .Options;
+
+var dbContext = new AdkEvaluationDbContext(dbOptions);
+var evalSetManager = new EfCoreEvalSetManager(dbContext);
+
+var evalSet = new EvalSet
+{
+    EvalSetId = "summarization-test",
+    Name = "IT Summarization Set",
+    EvalCases =
+    [
+        new EvalCase
+        {
+            EvalId = "case_gdpr",
+            Conversation =
+            [
+                new Invocation 
+                { 
+                    UserContent = new Content { Role = "user", Parts = [new Part { Text = "Summarize GDPR." }] },
+                    FinalResponse = new Content { Role = "model", Parts = [new Part { Text = "GDPR is a privacy and security law..." }] }
+                }
+            ]
+        }
+    ]
+};
+
+await evalSetManager.SaveEvalSetAsync(evalSet);
+```
+
+### Performing Inference
+
+Generate the initial responses from your core agent over the evaluation dataset.
+
+```csharp
+var evalService = new LocalEvalService();
+
+// Run the core agent against the dataset
+var inferenceResults = await evalService.PerformInferenceAsync(myCoreRunner, evalSet);
+```
+
+### Scoring with Built-in Evaluators
+
+You can use the built-in evaluators to grade the responses. The ADK provides evaluators like `RubricBasedEvaluator` and `HallucinationEvaluator`.
+
+```csharp
+using GoogleAdk.Evaluation.Evaluators;
+
+var judgeModel = new LlmModel("gemini-2.5-flash");
+
+// 1. Rubric-based Evaluator
+var rubricEvaluator = new RubricBasedEvaluator(
+    name: "ClarityScore",
+    judgeModel: judgeModel,
+    rubricDescription: "Score 1.0 if the ACTUAL OUTPUT is highly clear and uses simple language. Score 0.5 if it uses jargon. Score 0.0 if it is incomprehensible."
+);
+
+// 2. Hallucination Evaluator
+var hallucinationEvaluator = new HallucinationEvaluator(judgeModel);
+
+// Evaluate the original inference responses using the Judge
+var scoredResults = await evalService.EvaluateAsync(
+    evalSet, 
+    inferenceResults, 
+    [rubricEvaluator, hallucinationEvaluator]);
+
+foreach (var result in scoredResults)
+{
+    Console.WriteLine($"Case: {result.EvalId}");
+    foreach (var metricKvp in result.Invocations[0].Metrics)
+    {
+        var metric = metricKvp.Value;
+        Console.WriteLine($"  - {metric.MetricName}: {metric.Score:0.00} ({metric.Reason})");
+    }
+}
+
+// Save the evaluation run results
+await evalSetManager.SaveEvaluationRunAsync(Guid.NewGuid().ToString("N"), evalSet.EvalSetId, scoredResults);
+```
+
+For more details on specific evaluators, see:
+- [RubricBasedEvaluator](rubric-based-evaluator.md)
+- [HallucinationEvaluator](hallucination-evaluator.md)
+- [LlmAsJudgeEvaluator](llm-as-judge-evaluator.md)
+
+## 2. Prompt Optimization
+
+The `SimplePromptOptimizer` utilizes the LLM to automatically generate variations of a system prompt, evaluate them via a sampler, and output the mathematical best-performing candidate.
+
+```csharp
+using GoogleAdk.Optimization;
+
+var optimizer = new SimplePromptOptimizer();
+
+// The sampler simulates grading the effectiveness of the generated prompt candidates
+var sampler = new LlmPromptSampler(judgeRunner, "Goal: Write a concise, friendly refund confirmation.");
+
+var result = await optimizer.OptimizeAsync("Write a reply about a refund.", sampler);
+
+Console.WriteLine($"Original Prompt: Write a reply about a refund.");
+Console.WriteLine($"Optimized Prompt: {result.Optimized}");
+```
+---
+
+# docs/feature-flags.md
+
+# Feature Flags
+
+The ADK uses feature flags to safely roll out experimental components, manage breaking changes, and offer developers the ability to opt-in or opt-out of specific internal behaviors dynamically.
+
+## Enabling Features
+
+Feature flags are evaluated dynamically via the `AdkFeatures` utility class. The most robust way to enable a feature is by setting the associated environment variable prior to application startup.
+
+Flags generally follow the naming convention `ADK_ENABLE_FEATURENAME`.
+
+```csharp
+using GoogleAdk.Core.Features;
+
+// Enable via Environment Variables before AdkEnv is loaded
+Environment.SetEnvironmentVariable("ADK_ENABLE_LIVEBIDISTREAMING", "1");
+Environment.SetEnvironmentVariable("ADK_ENABLE_OUTPUTSCHEMA_WITH_TOOLS", "True");
+
+AdkEnv.Load();
+```
+
+## Temporary Overrides
+
+If you need to test a feature flag temporarily without polluting the global environment (for instance, during unit tests), you can utilize the `TemporaryOverride` block.
+
+```csharp
+using GoogleAdk.Core.Features;
+
+using (AdkFeatures.TemporaryOverride(FeatureName.OutputSchemaWithTools, true))
+{
+    // The feature is dynamically active here
+    Assert.True(AdkFeatures.IsFeatureEnabled(FeatureName.OutputSchemaWithTools));
+    
+    // Execute logic heavily dependent on Output Schema configurations
+}
+
+// Upon exiting the using block, the feature flag automatically reverts.
+Assert.False(AdkFeatures.IsFeatureEnabled(FeatureName.OutputSchemaWithTools));
+```
+---
+
+# docs/features.md
+
+# Features & Architecture
+
+The ADK provides a robust, composable architecture designed for complex agentic workflows. Build logic efficiently without rewriting boilerplate.
+
+## Agent Types
+
+Built-in orchestration patterns determine how a sequence of actions executes:
+
+- **`LlmAgent`**: The foundational agent. Handles tool execution, context windows, code execution, and system instructions.
+- **`SequentialAgent`**: Executes sub-agents sequentially, chaining outputs as inputs.
+- **`ParallelAgent`**: Runs sub-agents concurrently with identical context, aggregating responses.
+- **`LoopAgent`**: Runs a sub-agent recursively until a condition is met or an escalation occurs.
+
+## Processors Pipeline
+
+`LlmAgent` uses a highly customizable pipeline to mutate requests and responses before and after LLM dispatch.
+
+| Processor | Purpose |
+| :--- | :--- |
+| `InstructionsLlmRequestProcessor` | Injects system instructions and few-shot examples. |
+| `CodeExecutionRequestProcessor` | Enables agents to write and execute code. |
+| `RequestConfirmationLlmRequestProcessor` | Pauses for human confirmation on sensitive actions. |
+| `ContextCacheRequestProcessor` | Caches prompts automatically to lower costs. |
+| `OutputSchemaRequestProcessor` | Forces output to match a strict JSON schema. |
+
+### Customizing Pipelines
+
+Override the default sequence to inject proprietary logic or logging:
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "custom_pipeline_agent",
+    Model = "gemini-2.5-flash",
+    RequestProcessors = [
+        BasicLlmRequestProcessor.Instance,
+        new MyCustomProcessor(),
+        ContentRequestProcessor.Instance
+    ]
+});
+```
+
+## Context Compaction
+
+Prevent context window overflows during long-running flows using automatic compactors.
+
+| Compactor | Strategy |
+| :--- | :--- |
+| **Truncation** | FIFO - Removes oldest messages. |
+| **Token** | Evaluates tokens and limits payload size. |
+| **Summarization** | Uses the LLM to summarize and replace long dialogue blocks. |
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "compact_agent",
+    Model = "gemini-2.5-flash",
+    ContextCompactors = [new TruncatingContextCompactor(2000)] // Keep last 2000 tokens
+});
+```
+---
+
+# docs/getting-started.md
+
+# Getting Started
+
+The Agent Development Kit (ADK) for .NET provides foundational components to build, test, and deploy intelligent agents.
+
+## Prerequisites
+
+- **.NET SDK 10.0+**
+- **API Key** (e.g., Google AI Studio, Vertex AI)
+
+### Authentication
+
+Set the required environment variables in a `.env` file at the root of your project. The ADK automatically loads them via `AdkEnv.Load()`.
+
+**Google AI Studio**
+```env
+GOOGLE_API_KEY=your_api_key_here
+```
+
+**Vertex AI**
+```env
+GOOGLE_GENAI_USE_VERTEXAI=True
+GOOGLE_CLOUD_PROJECT=your_project_id
+GOOGLE_CLOUD_LOCATION=us-central1
+```
+
+## First Agent in 30 Seconds
+
+1. Create a new console app and install the package:
+```bash
+dotnet new console -n QuickstartAgent
+cd QuickstartAgent
+dotnet add package GoogleAdk --prerelease
+```
+
+2. Update `Program.cs`:
+```csharp
+using GoogleAdk.Core;
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Runner;
+
+AdkEnv.Load();
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "quickstart",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a concise, helpful assistant."
+});
+
+await ConsoleRunner.RunAsync(agent);
+```
+
+## Running the Web UI
+
+To test and debug your agents visually, you can use the built-in server:
+
+```csharp
+await AdkServer.RunAsync(agent);
+```
+[Learn more about ADK Web](adk-web.md)
+
+## Custom Runners
+
+For deep integration into production apps, background services, or Discord bots, you can bypass the pre-built runners and construct the core `Runner` directly:
+
+```csharp
+var runner = new InMemoryRunner("custom-app", agent);
+
+await foreach (var evt in runner.RunAsync("user-1", "session-id", content))
+{
+    // Handle your own streams and events
+}
+```
+[Learn more about Custom Runners](custom-runner.md)
+---
+
+# docs/google-api-tool.md
+
+# Google API Tool
+
+The `GoogleApiTool` acts as a dynamic bridge to virtually any Google Cloud API (e.g., Compute Engine, Cloud Storage) via the Google API Discovery Service. 
+
+## Usage
+
+This advanced tool allows the LLM to dynamically fetch API schemas, structure requests, and execute REST calls without hardcoding specific tools.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "gcp_admin_agent",
+    Model = "gemini-2.5-pro",
+    Instruction = "You are a GCP cloud administrator. Use the GoogleApiTool to manage cloud resources dynamically.",
+    Tools = [ new GoogleApiTool() ]
+});
+```
+
+### Example Flow
+
+If a user asks *"List my compute engine instances in us-central1-a for project my-project"*, the LLM invokes the tool with parameters like:
+- `apiName`: "compute"
+- `apiVersion`: "v1"
+- `resource`: "instances"
+- `method`: "list"
+- `parameters`: `{ "project": "my-project", "zone": "us-central1-a" }`
+
+The tool executes the request and returns the JSON response.
+---
+
+# docs/google-search-tool.md
+
+# Google Search Tool
+
+!!! warning "Gemini Only"
+    This tool relies on Google's Search Grounding API and is exclusively compatible with Gemini models (e.g., `gemini-2.5-flash`).
+
+The `GoogleSearchTool` provides agents with real-time web search capabilities to answer factual, up-to-date questions.
+
+## Overview
+
+Unlike standard function tools, this tool signals the Gemini model to activate its internal search capabilities. The model decides when to search, retrieves the results, synthesizes an answer, and returns grounding metadata containing the exact search queries used and URLs cited.
+
+## Usage
+
+Instantiate `GoogleSearchTool` and add it to your agent's `Tools` list.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "search_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a research assistant. Use Google Search for current events.",
+    Tools = [new GoogleSearchTool()]
+});
+```
+
+### Accessing Grounding Metadata
+
+When the agent searches, the response events will contain `GroundingMetadata` detailing the queries run.
+
+```csharp
+await foreach (var evt in runner.RunAsync("user-id", "session-id", userMessage))
+{
+    if (evt.GroundingMetadata?.WebSearchQueries != null)
+    {
+        Console.WriteLine("Search Queries Run:");
+        foreach (var query in evt.GroundingMetadata.WebSearchQueries)
+        {
+            Console.WriteLine($"- {query}");
+        }
+    }
+}
+```
+---
+
+# docs/hallucination-evaluator.md
+
+# HallucinationEvaluator
+
+The `HallucinationEvaluator` is a built-in evaluation tool in the `GoogleAdk.Evaluation` library. It specifically measures whether an agent's response contains factual claims that are unsupported by the provided context or expected output.
+
+## Overview
+
+Hallucinations are one of the most critical risks when deploying LLMs. This evaluator acts as an LLM Judge, comparing the agent's output against the ground truth (the `Expected Output`) to ensure no extraneous or conflicting information was generated.
+
+A score of `1.0` means the response is perfectly grounded. A score of `0.0` means it contains severe hallucinations.
+
+## Usage
+
+You only need to supply the LLM judge model. The grading rubric for hallucination detection is pre-configured internally.
+
+```csharp
+using GoogleAdk.Core.Abstractions.Models;
+using GoogleAdk.Evaluation.Evaluators;
+
+// It is generally recommended to use your smartest model (e.g., gemini-2.5-pro) for complex evaluations like hallucination checking.
+var judgeModel = new LlmModel("gemini-2.5-pro");
+
+var hallucinationEvaluator = new HallucinationEvaluator(judgeModel, name: "HallucinationMetric");
+```
+
+### Applying the Evaluator
+
+You pass the `HallucinationEvaluator` to `LocalEvalService.EvaluateAsync`, typically alongside other evaluators.
+
+```csharp
+var scoredResults = await evalService.EvaluateAsync(
+    evalSet, 
+    inferenceResults, 
+    [hallucinationEvaluator]);
+
+var metric = scoredResults[0].Invocations[0].Metrics["HallucinationMetric"];
+
+if (metric.Score < 1.0) 
+{
+    Console.WriteLine("Warning: Hallucination detected!");
+    Console.WriteLine($"Judge's Reasoning: {metric.Reason}");
+}
+```
+
+## How It Works
+
+The `HallucinationEvaluator` internally wraps the `RubricBasedEvaluator` using a strict rubric designed specifically for factual consistency. 
+
+When evaluating an invocation, it behaves according to these rules:
+1. **With Expected Output:** It treats the `EvalCase`'s `FinalResponse` as the definitive source of truth. If the agent's actual output makes factual claims not found in the expected output, the score is reduced.
+2. **Without Expected Output:** If your `EvalCase` does not include an expected output, it falls back to checking if the agent's actual output contains universally known falsehoods or logical contradictions based on the user's input.
+---
+
+# docs/human-in-the-loop.md
+
+# Human in the Loop (Confirmation)
+
+When connecting agents to external databases or sensitive APIs, allowing an LLM to blindly execute actions (like deleting a record, updating a billing amount, or initiating a refund) introduces unacceptable risks.
+
+The ADK resolves this via the **Human-in-the-Loop** confirmation pattern, enabling you to pause execution immediately prior to a dangerous tool call, surface the action to a user or admin, and resume only upon explicit approval.
+
+## Implementation
+
+The confirmation pattern is a dialogue loop: the agent emits a `ConfirmationRequest` event, execution suspends, and the UI responds with a `ToolConfirmation` object dictating acceptance or rejection.
+
+```csharp
+using GoogleAdk.Core.Runner;
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Models.Gemini;
+
+// 1. Configure the agent with potentially sensitive tools
+var model = GeminiModelFactory.Create("gemini-2.5-flash");
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "time_off_agent",
+    Model = model,
+    Instruction = "Use the 'request_time_off' tool for time off requests.",
+    Tools = [ RequireConfirmationTools.RequestTimeOffTool ]
+});
+
+var runner = new InMemoryRunner("hitl-sample", agent);
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest { AppName = "hitl-sample", UserId = "user-1" });
+
+var userMessage = new Content { Role = "user", Parts = [new Part { Text = "Request 5 days off." }] };
+
+// 2. Execute. The agent will attempt to call the request_time_off tool and pause.
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+{
+    foreach (var part in evt.Content.Parts)
+    {
+        // 3. Catch the special RequestConfirmation tool
+        if (part.FunctionCall?.Name == FunctionCallHandler.RequestConfirmationFunctionCallName)
+        {
+            var originalFunctionCallId = GetOriginalFunctionCallId(part.FunctionCall);
+            var confirmationId = part.FunctionCall.Id;
+
+            // Pause here, prompt the user via UI/Console, and gather their boolean choice (Accepted)
+            bool accepted = PromptUserForApproval(); 
+
+            // 4. Construct the resumption response
+            var confirmationResponse = new Content
+            {
+                Role = "user",
+                Parts =
+                [
+                    new Part
+                    {
+                        FunctionResponse = new FunctionResponse
+                        {
+                            Name = FunctionCallHandler.RequestConfirmationFunctionCallName,
+                            Id = confirmationId,
+                            Response = new Dictionary<string, object?>
+                            {
+                                ["toolConfirmation"] = new ToolConfirmation
+                                {
+                                    FunctionCallId = originalFunctionCallId,
+                                    Accepted = accepted
+                                }
+                            }
+                        }
+                    }
+                ]
+            };
+
+            // 5. Resume execution by passing the confirmation response back into RunAsync
+            await RunOnceAsync(runner, session.Id, confirmationResponse);
+        }
+    }
+}
+
+
+/// <summary>Request time off for the employee.</summary>
+/// <param name="days">Number of days requested.</param>
+/// <param name="context">Agent context used for confirmation flow.</param>
+[FunctionTool(Name = "request_time_off", RequireConfirmation = true)]
+static object? RequestTimeOff(int days, AgentContext context)
+{
+    if (days <= 0)
+        return new Dictionary<string, object?> { ["status"] = "Invalid days to request." };
+
+    return new Dictionary<string, object?>
+    {
+        ["status"] = "pending_approval",
+        ["requested_days"] = days
+    };
+}
+```
+
+If `Accepted` is true, the ADK will proceed to invoke the underlying sensitive tool and relay the result to the LLM. If false, it blocks execution and informs the LLM that the user denied the request.
+---
+
+# docs/index.md
+
+---
+hide:
+  - navigation
+  - toc
+---
+
+<div class="adk-hero">
+  <img src="assets/agent-development-kit.png" width="160" style="margin-bottom: 2rem;"/>
+  <h1 class="adk-gradient-text">Agent Development Kit<br>for .NET</h1>
+  <p class="adk-hero-subtitle">
+    An open-source, code-first .NET framework for building, evaluating, and deploying sophisticated AI agents with flexibility and control.
+  </p>
+  <div class="adk-hero-actions">
+    <a href="getting-started/" class="md-button md-button--primary">Get Started</a>
+    <a href="https://github.com/sps014/GoogleAdk-cs" class="md-button">
+      GitHub
+    </a>
+  </div>
+</div>
+
+<div class="adk-code-showcase" markdown>
+
+```csharp
+using GoogleAdk.Core;
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Runner;
+
+AdkEnv.Load();
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "quickstart",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a concise, helpful assistant."
+});
+
+await ConsoleRunner.RunAsync(agent);
+```
+
+</div>
+
+<div class="grid cards" markdown>
+
+-   :material-robot-outline: **Agents**
+
+    ---
+
+    Core execution logic powered by LLMs like `LlmAgent`, or structural orchestrators like `SequentialAgent` and `ParallelAgent`.
+
+    [:octicons-arrow-right-24: Models & Agents](features.md)
+
+-   :material-toolbox-outline: **Tools & Plugins**
+
+    ---
+
+    Actions an agent can take (e.g., Search, API calls) and middleware (e.g., metrics, logging) generated right from your C# code.
+
+    [:octicons-arrow-right-24: Tools Overview](tools.md)
+
+-   :material-server-network: **Runners**
+
+    ---
+
+    Execution engines handling state, streaming, and context. Run in a console, web UI, or background service.
+
+    [:octicons-arrow-right-24: Running Agents](running-agents.md)
+
+-   :material-connection: **Agent-to-Agent (A2A)**
+
+    ---
+
+    Built-in support for Remote Agent-to-Agent communication using the A2A protocol (Client and Server).
+
+    [:octicons-arrow-right-24: Agent-to-Agent](a2a.md)
+
+-   :material-api: **Model Context Protocol (MCP)**
+
+    ---
+
+    Full Model Context Protocol integration allowing dynamic tool discovery and external system connections.
+
+    [:octicons-arrow-right-24: MCP](mcp.md)
+
+-   :material-clipboard-check-outline: **Evaluations**
+
+    ---
+
+    Test your agents effectively with Rubric-based, Hallucination, and LLM-as-a-Judge evaluators out of the box.
+
+    [:octicons-arrow-right-24: Evaluation](evaluation-optimization.md)
+
+-   :material-sitemap: **Orchestration**
+
+    ---
+
+    Coordinate multiple agents to solve complex workflows using Sequential, Parallel, and Loop architectures.
+
+    [:octicons-arrow-right-24: Orchestration](orchestration.md)
+
+-   :material-brain: **Memory & State**
+
+    ---
+
+    Give agents persistent context, session history management, and the ability to recall previous interactions.
+
+    [:octicons-arrow-right-24: Memory](memory.md)
+
+-   :material-map-marker-path: **Planning**
+
+    ---
+
+    Equip your agents with goal-oriented planning capabilities to break down tasks and execute them step-by-step.
+
+    [:octicons-arrow-right-24: Planning](planning.md)
+
+-   :material-cached: **Caching**
+
+    ---
+
+    Prompt and context caching using Gemini-backed implicit caching to lower latency and costs.
+
+    [:octicons-arrow-right-24: Caching](caching.md)
+
+-   :material-puzzle-outline: **Plugins & Telemetry**
+
+    ---
+
+    Lifecycle hooks, streaming events, and OpenTelemetry-style tracing for deep observability.
+
+    [:octicons-arrow-right-24: Plugins](plugins.md)
+
+-   :material-folder-zip-outline: **Skills**
+
+    ---
+
+    File-based modular skills for agents using the `SkillLoader` and standard `SKILL.md` configurations.
+
+    [:octicons-arrow-right-24: Skills](skills.md)
+
+-   :material-volume-high: **Text-to-Speech (TTS)**
+
+    ---
+
+    Generate audio directly from LLMs like `gemini-2.5-flash-preview-tts` alongside your responses.
+
+    [:octicons-arrow-right-24: TTS](tts.md)
+
+-   :material-code-json: **Code Execution**
+
+    ---
+
+    Allow your agents to securely execute generated code and analyze the outputs dynamically in real-time.
+
+    [:octicons-arrow-right-24: Code Execution](code-execution.md)
+
+</div>
+
+---
+
+# docs/llm-as-judge-evaluator.md
+
+# LlmAsJudgeEvaluator
+
+The `LlmAsJudgeEvaluator` is the abstract base class powering all LLM-driven evaluation tools in the `GoogleAdk.Evaluation` library. It provides the core boilerplate needed to use a language model as a grader for another agent's output.
+
+## Overview
+
+Instead of hardcoding deterministic checks (like string matching or regex), an LLM-as-a-judge allows you to grade subjective quality, adherence to instructions, and semantic meaning. 
+
+The ADK provides concrete implementations like [`RubricBasedEvaluator`](rubric-based-evaluator.md) and [`HallucinationEvaluator`](hallucination-evaluator.md), but you can build your own custom evaluators by inheriting from `LlmAsJudgeEvaluator`.
+
+## Creating a Custom LLM Evaluator
+
+To create a custom evaluator, inherit from `LlmAsJudgeEvaluator` and implement two required methods:
+
+1. `FormatAutoRaterPrompt`: Defines what text is sent to the judge model.
+2. `ConvertAutoRaterResponseToScoreAsync`: Parses the judge's response back into a numeric score and reasoning string.
+
+### Example: A Word Count Evaluator
+
+While word count could be evaluated deterministically, this example demonstrates the implementation pattern for an LLM judge:
+
+```csharp
+using GoogleAdk.Core.Abstractions.Events;
+using GoogleAdk.Core.Abstractions.Models;
+using GoogleAdk.Evaluation.Evaluators;
+using GoogleAdk.Evaluation.Models;
+
+public class BrevityEvaluator : LlmAsJudgeEvaluator
+{
+    public BrevityEvaluator(LlmModel judgeModel) 
+        : base("Brevity", judgeModel) { }
+
+    protected override string FormatAutoRaterPrompt(Invocation invocation, InvocationResult result)
+    {
+        var actualText = result.FinalResponse?.Parts?.FirstOrDefault()?.Text ?? "";
+
+        return $@"
+Evaluate the following text for brevity.
+If the text is under 15 words, give it a 1.0.
+If it is between 15 and 30 words, give it a 0.5.
+If it is over 30 words, give it a 0.0.
+
+TEXT:
+{actualText}
+
+Return your answer strictly in the format: SCORE|REASONING
+";
+    }
+
+    protected override Task<EvalMetricResult> ConvertAutoRaterResponseToScoreAsync(
+        LlmResponse autoRaterResponse, 
+        CancellationToken cancellationToken)
+    {
+        var text = autoRaterResponse.Content?.Parts?.FirstOrDefault()?.Text ?? "";
+        
+        var parts = text.Split('|');
+        if (parts.Length == 2 && double.TryParse(parts[0], out double score))
+        {
+            return Task.FromResult(new EvalMetricResult
+            {
+                MetricName = Name,
+                Score = score,
+                Reason = parts[1].Trim()
+            });
+        }
+
+        return Task.FromResult(new EvalMetricResult
+        {
+            MetricName = Name,
+            Score = null,
+            Reason = "Failed to parse judge output: " + text
+        });
+    }
+}
+```
+
+### Using Your Custom Evaluator
+
+Once created, you can pass your custom evaluator into the evaluation service just like the built-in ones.
+
+```csharp
+var brevityEvaluator = new BrevityEvaluator("gemini-2.5-flash");
+
+var scoredResults = await evalService.EvaluateAsync(
+    evalSet, 
+    inferenceResults, 
+    [brevityEvaluator]);
+```
+---
+
+# docs/mcp.md
+
+# Model Context Protocol (MCP)
+
+The ADK provides first-class support for the Model Context Protocol (MCP), enabling your agents to dynamically discover and consume tools provided by external MCP servers. This allows your agent to safely interact with a vast ecosystem of third-party APIs and local resources.
+
+## Core Components
+
+- **`McpToolset`**: Connects to an MCP server, discovers its available tools, and makes them available to an agent. It manages the lifecycle of the connection.
+- **`McpSessionManager`**: Manages the underlying client sessions (e.g., Stdio or HTTP) and handles protocol-level communication.
+- **`McpTool`**: A dynamically generated wrapper for an individual MCP tool, exposing it to the LLM identically to any other `IBaseTool`.
+
+## Connecting to an MCP Server
+
+The ADK supports connecting to MCP servers via standard input/output (stdio) or over HTTP/SSE.
+
+### Stdio Connections (Local Processes)
+
+Connecting to a local MCP server via stdio is ideal for utilities running on the same machine, such as `npx` packages or Python tools via `uvx`.
+
+```csharp
+using GoogleAdk.Tools.Mcp;
+using GoogleAdk.Core.Agents;
+
+// 1. Configure the connection parameters for the MCP server
+var stdioParams = new StdioConnectionParams
+{
+    Command = "npx",
+    Arguments = ["-y", "@modelcontextprotocol/server-everything"],
+    TimeoutMs = 30_000 // Optional: Set a startup/request timeout
+};
+
+// 2. Initialize the toolset
+// Note: It's important to dispose of the toolset when shutting down 
+// your application to ensure the external process exits cleanly.
+var toolset = new McpToolset(stdioParams, prefix: "mcp");
+
+// 3. Attach the toolset to your agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "mcp_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You have access to MCP tools. Use them to assist the user.",
+    // The toolset will automatically discover all tools provided by the server
+    Toolsets = [toolset] 
+});
+
+// To clean up later:
+// await toolset.DisposeAsync();
+```
+
+**Using Python-based MCP Servers (e.g., uvx):**
+
+```csharp
+var blenderParams = new StdioConnectionParams
+{
+    Command = "uvx",
+    Arguments = ["-q", "blender-mcp"],
+    TimeoutMs = 60_000
+};
+var blenderToolset = new McpToolset(blenderParams);
+```
+
+### HTTP/SSE Connections (Remote Servers)
+
+You can connect to remote MCP servers over HTTP using Server-Sent Events (SSE). This is useful when the MCP server is hosted externally or behind a load balancer.
+
+```csharp
+using GoogleAdk.Tools.Mcp;
+using GoogleAdk.Core.Agents;
+
+// 1. Configure the connection parameters for the remote server
+var httpParams = new HttpConnectionParams
+{
+    Url = "http://localhost:8788/mcp",
+    // You can also provide custom HTTP headers if the server requires them
+    Headers = new Dictionary<string, string>
+    {
+        { "Authorization", "Bearer my-secret-token" }
+    }
+};
+
+// 2. Initialize the toolset
+var toolset = new McpToolset(httpParams);
+
+// 3. Attach the toolset to your agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "mcp_http_agent",
+    Model = "gemini-2.5-flash",
+    Toolsets = [toolset]
+});
+```
+
+## Prefixing Tool Names
+
+MCP servers often expose generic tool names like `search` or `execute`. To prevent naming collisions when using multiple toolsets or built-in tools, you can specify a prefix.
+
+```csharp
+// Tools will be exposed as 'github_search', 'github_execute', etc.
+var toolset = new McpToolset(stdioParams, prefix: "github");
+```
+
+## Security and Authentication
+
+- The `Headers` property in `HttpConnectionParams` allows you to pass authentication tokens to remote servers.
+- Further connection hardening and granular tool filtering capabilities will be added in future releases.
+
+---
+
+# docs/memory.md
+
+# Memory Management
+
+Memory management in the ADK provides an automated and programmatic way to store, recall, and manage context across an agent's long-term operations. While `State` is used for more structured variables across sessions, `Memory` represents an unstructured collection of previous conversations or explicitly provided facts, allowing agents to search and summarize context for the user dynamically.
+
+## Setting Up Memory Service
+
+By default, the ADK `Runner` automatically provides an `InMemoryMemoryService`. This is suitable for prototyping and testing, allowing you to search through the current user's session history based on simple keyword matching. For production use cases, you can implement a persistent data store or a more robust retrieval engine using the `IBaseMemoryService` interface.
+
+To inject a custom memory service, provide it through the `RunnerConfig`:
+
+```csharp
+var runnerConfig = new RunnerConfig
+{
+    AppName = "my-app",
+    Agent = myRootAgent,
+    SessionService = new InMemorySessionService(),
+    MemoryService = new MyCustomMemoryService() // Use your custom implementation
+};
+```
+
+## Using Memory in Tools and Callbacks
+
+The memory capabilities are exposed in any tool or callback via the `AgentContext` object.
+
+### Adding Sessions to Memory
+
+You can automatically extract and store an entire session's events to the configured memory service. This is commonly done in `after_run` callbacks or at the completion of a scenario.
+
+```csharp
+// Example: Add an entire session's conversation history to memory.
+await ctx.AddSessionToMemoryAsync();
+```
+
+### Adding Specific Events to Memory
+
+If you only want to save a subset of events (e.g., the last few turns of an interaction), use `AddEventsToMemoryAsync`:
+
+```csharp
+var customMetadata = new Dictionary<string, object>
+{
+    { "category", "financial_advice" },
+    { "importance", "high" }
+};
+
+await ctx.AddEventsToMemoryAsync(
+    events: recentEventsList,
+    customMetadata: customMetadata
+);
+```
+
+### Writing Explicit Memories
+
+You can explicitly inject new facts or entries into the memory using `AddMemoryAsync`. These memories are not tied directly to session turns.
+
+```csharp
+var newMemories = new List<MemoryEntry>
+{
+    new MemoryEntry 
+    { 
+        Content = new Content { Parts = new List<Part> { new Part { Text = "The user prefers dark mode." } } },
+        Author = "system",
+        Timestamp = DateTimeOffset.UtcNow.ToString("o")
+    }
+};
+
+await ctx.AddMemoryAsync(newMemories);
+```
+
+### Searching Memory
+
+Memory searching enables the agent to fetch relevant past knowledge. This is typically invoked dynamically by the agent through a built-in or custom tool, or proactively within a callback.
+
+```csharp
+var searchResponse = await ctx.SearchMemoryAsync("What is the user's preferred theme color?");
+
+foreach (var memory in searchResponse.Memories)
+{
+    Console.WriteLine($"Found Memory: {memory.Content.Parts.First().Text}");
+}
+```
+
+The underlying `IBaseMemoryService` implementation determines how the query is processed (e.g., lexical search, semantic embeddings, vector retrieval).
+
+---
+
+# docs/models.md
+
+# Models and the LLM Registry
+
+The ADK heavily abstracts the underlying Large Language Model (LLM) implementation. This decoupled architecture allows you to dynamically switch between models, swap providers, or mock models entirely for testing, without modifying your agent logic.
+
+## Supported Providers
+
+- **Google Gemini**: First-class native support via the official `Microsoft.Extensions.AI` (MEAI) integration.
+- **MEAI-compatible providers**: Use `GoogleAdk.Models.Meai` to wrap any `IChatClient` (OpenAI, Anthropic, Ollama, Azure OpenAI, etc.).
+
+## The Model Registry
+
+Instead of directly instantiating model clients, the ADK utilizes the `LlmRegistry`. You can simply reference a model by its string name (e.g., `"gemini-2.5-flash"`). The registry matches the string pattern and dynamically instantiates the correct client.
+
+### Using the Model Registry (Recommended)
+
+This is the standard approach for configuring an agent. By passing a string to `Model`, the ADK handles resolution automatically based on standard regex rules.
+
+```csharp
+using GoogleAdk.Core.Agents;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "registry_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "Provide helpful guidance."
+});
+```
+
+### Direct Model Instantiation
+
+If you need to configure specific underlying MEAI settings, instantiate the model directly using the factory and pass it to the `Model` property.
+
+```csharp
+using GoogleAdk.Models.Gemini;
+
+// Instantiate the Gemini model directly
+var geminiModel = GeminiModelFactory.Create("gemini-2.5-flash");
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "direct_agent",
+    Model = geminiModel,
+    Instruction = "Provide helpful guidance."
+});
+```
+
+### Using `MeaiLlm` (any MEAI `IChatClient`)
+
+The true power of the ADK's model abstraction is its native support for Microsoft Extensions AI (MEAI). You can wrap **any** MEAI `IChatClient` with `MeaiLlm` and pass it as the model. This allows you to use models from OpenAI, Anthropic, Ollama, Azure, and more.
+
+#### Ollama (Local Models)
+
+To run local models like Llama 3 or Gemma using Ollama, use the `GoogleAdk.Models.Ollama` package, which provides a native `OllamaChatClient` that supports advanced features like model-native thinking.
+
+```csharp
+using GoogleAdk.Models.Meai;
+using GoogleAdk.Models.Ollama;
+using Microsoft.Extensions.AI;
+
+// Connect to your local Ollama instance
+// Pull the model first with: ollama pull gemma4:e4b
+string modelName = "gemma4:e4b";
+IChatClient ollamaClient = new OllamaChatClient(new Uri("http://localhost:11434"), modelName);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "ollama_agent",
+    Model = new MeaiLlm(modelName, ollamaClient),
+    Instruction = "You are a local assistant running on Ollama."
+});
+```
+
+#### OpenAI
+
+To use OpenAI models like GPT-4o, use the `Microsoft.Extensions.AI.OpenAI` package.
+
+```csharp
+using GoogleAdk.Models.Meai;
+using Microsoft.Extensions.AI;
+using OpenAI;
+
+// Initialize the OpenAI client with your API key
+var openAiClient = new OpenAIClient("your-openai-api-key").AsIChatClient("gpt-4o");
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "openai_agent",
+    Model = new MeaiLlm("gpt-4o", openAiClient),
+    Instruction = "You are a helpful assistant powered by OpenAI."
+});
+```
+
+#### Anthropic (Claude)
+
+To use Anthropic models like Claude 3.5 Sonnet, use a compatible MEAI wrapper or the official SDK if it implements `IChatClient`.
+
+```csharp
+using GoogleAdk.Models.Meai;
+using Microsoft.Extensions.AI;
+using Anthropic;
+using Anthropic.Core;
+
+var anthropicClient = new AnthropicClient(new ClientOptions { ApiKey = "your-anthropic-api-key" });
+var chatClient = anthropicClient.AsIChatClient("claude-3-5-sonnet-latest");
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "claude_agent",
+    Model = new MeaiLlm("claude-3-5-sonnet-latest", chatClient),
+    Instruction = "You are Claude, a helpful assistant."
+});
+```
+
+## Fallbacks and Hierarchy
+
+In multi-agent orchestration, you do not need to configure a model for every single sub-agent. If a child agent (like a `SequentialAgent`'s sub-agent) lacks a `ModelN`, it will automatically traverse up the execution tree to find the `CanonicalModel` defined by its parent or root agent.
+
+```csharp
+var childAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "child",
+    // Model is intentionally left blank. It will inherit from the parent.
+    Instruction = "I am a child agent."
+});
+
+var rootAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "root",
+    Model = "gemini-2.5-flash", // Defined here at the root
+    Tools = [new AgentTool(childAgent)]
+});
+```
+
+## Gemini-Specific Limitations
+
+While the ADK supports any model via MEAI, certain built-in tools and features are deeply integrated with Google Cloud and the Gemini API infrastructure. These features **will not work** if you use a non-Gemini provider (like OpenAI or Ollama).
+
+### Features requiring Gemini:
+- **Context Caching**: The `ContextCacheRequestProcessor` relies on the Gemini Cache API.
+- **Code Execution**: The `CodeExecutionRequestProcessor` relies on Gemini's native code execution environment.
+- **Live/Bidirectional Streaming**: `RunLiveAsync` requires the Gemini Bidi protocol.
+
+### Tools requiring Gemini or Google Cloud Auth:
+The following tools require Google Cloud authentication (ADC) or rely on Gemini-specific search grounding capabilities:
+- `GoogleSearchTool`
+- `VertexAiSearchTool`
+- `VertexAiRagRetrievalTool`
+- `DiscoveryEngineSearchTool`
+- `GoogleApiTool`
+- `ApiHubTool`
+- `BigQueryQueryTool` & `BigQueryMetadataTool`
+- `SpannerQueryTool` & `SpannerSearchTool`
+- `BigtableQueryTool`
+- `PubSubMessageTool`
+
+If you are using Ollama, OpenAI, or Anthropic, you should use standard function tools (`[FunctionTool]`), MCP toolsets, or custom `BaseTool` implementations instead.
+---
+
+# docs/orchestration.md
+
+# Multi-Agent Orchestration
+
+The ADK allows developers to build robust systems by delegating tasks to multiple specialized sub-agents rather than relying on a single monolith prompt. This hierarchical strategy prevents context dilution and improves accuracy.
+
+## 1. The AgentTool Pattern (Delegation)
+
+> **Note:** The simplest form of orchestration is turning an agent into a tool using `AgentTool`. When the root LLM identifies an intent matching the sub-agent's description, it calls the `AgentTool`, transferring execution context to the sub-agent.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var searchAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "researcher",
+    Instruction = "Research requested topics deeply."
+});
+
+var rootAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coordinator",
+    Instruction = "Delegate research tasks to the 'researcher' tool.",
+    Tools = [new AgentTool(searchAgent)]
+});
+```
+
+## 2. SequentialAgent (Pipelines)
+
+```mermaid
+flowchart LR
+    Input([User Input]) --> Agent1[Agent 1: Research]
+    Agent1 --> Agent2[Agent 2: Analyze]
+    Agent2 --> Agent3[Agent 3: Write]
+    Agent3 --> Output([Final Output])
+```
+
+A `SequentialAgent` executes a series of sub-agents in order. The output of the first agent is fed directly into the context of the second agent, forming a data pipeline.
+
+**Example: Research → Analyze → Write**
+
+```csharp
+var researchAgent = new LlmAgent(new LlmAgentConfig { Name = "researcher", Instruction = "..." });
+var analystAgent = new LlmAgent(new LlmAgentConfig { Name = "analyst", Instruction = "..." });
+var writerAgent = new LlmAgent(new LlmAgentConfig { Name = "writer", Instruction = "..." });
+
+var pipeline = new SequentialAgent(new SequentialAgentConfig
+{
+    Name = "research_pipeline",
+    Description = "A pipeline that researches, analyzes, and writes a report.",
+    SubAgents = [ researchAgent, analystAgent, writerAgent ]
+});
+
+// The pipeline executes the agents precisely in the order defined above.
+```
+
+## 3. ParallelAgent (Concurrency)
+
+```mermaid
+flowchart TD
+    Input([User Input]) --> Split{Broadcast}
+    Split --> Agent1[Agent 1: Optimist]
+    Split --> Agent2[Agent 2: Pessimist]
+    Split --> Agent3[Agent 3: Pragmatist]
+    Agent1 --> Aggregate{Aggregate}
+    Agent2 --> Aggregate
+    Agent3 --> Aggregate
+    Aggregate --> Output([Combined Output])
+```
+
+A `ParallelAgent` takes the current conversational context and broadcasts it to multiple sub-agents simultaneously. The runner waits until all branches complete their generation, then aggregates their independent conclusions.
+
+This is exceptionally useful when you want multiple unique perspectives on identical data (e.g., an optimist, pessimist, and pragmatist).
+
+```csharp
+var optimist = new LlmAgent(new LlmAgentConfig { Name = "optimist", Instruction = "..." });
+var pessimist = new LlmAgent(new LlmAgentConfig { Name = "pessimist", Instruction = "..." });
+var pragmatist = new LlmAgent(new LlmAgentConfig { Name = "pragmatist", Instruction = "..." });
+
+var parallelAnalysis = new ParallelAgent(new ParallelAgentConfig
+{
+    Name = "parallel_analysis",
+    Description = "Runs optimist, pessimist, and pragmatist analyses in parallel.",
+    SubAgents = [ optimist, pessimist, pragmatist ]
+});
+```
+
+When you iterate over the events generated by `parallelAnalysis`, the `evt.Author` property will specify which of the sub-agents generated that specific output branch.
+
+## 4. LoopAgent (Iterative Refinement)
+
+```mermaid
+flowchart TD
+    Input([User Input]) --> Drafter[Agent A: Drafter]
+    Drafter --> Critic[Agent B: Critic]
+    Critic -- Score < 8 --> Drafter
+    Critic -- Score >= 8 --> Escalate[Escalate Tool]
+    Escalate --> Output([Final Output])
+```
+
+A `LoopAgent` recursively runs its sub-agents until a specific completion criteria is met or a `MaxIterations` limit is hit. 
+
+A common use case is an Actor-Critic model: Agent A generates a draft, Agent B critiques the draft and returns feedback. Agent A generates a new draft based on the feedback. The loop terminates when Agent B explicitly triggers an "Escalate" action indicating approval.
+
+```csharp
+using GoogleAdk.Core.Agents;
+
+var drafter = new LlmAgent(new LlmAgentConfig { Name = "drafter", Instruction = "Write a draft based on feedback." });
+
+var critic = new LlmAgent(new LlmAgentConfig 
+{ 
+    Name = "critic", 
+    Instruction = "Score the draft. If it scores >= 8, call the escalate tool to end the loop.",
+    // The LoopTools.EscalateTool triggers the loop termination
+    Tools = [ GoogleAdk.Samples.LoopAgent.LoopTools.EscalateTool ]
+});
+
+var refinementLoop = new LoopAgent(new LoopAgentConfig
+{
+    Name = "refinement_loop",
+    Description = "Iteratively refines content through drafting and critique.",
+    MaxIterations = 5, // Failsafe to prevent infinite loops
+    SubAgents = [ drafter, critic ]
+});
+```
+---
+
+# docs/output-schema.md
+
+# Output Schema (Structured Output)
+
+A common requirement for LLM integrations is coercing the model to generate responses strictly conforming to a predefined data structure (typically JSON). The ADK accomplishes this dynamically by leveraging the `typeof` keyword and injecting a specific tool (`set_model_response`) into the agent's context.
+
+## Enforcing Structured Outputs
+
+By specifying an `OutputSchema` on the `LlmAgentConfig`, the ADK converts the C# `Type` into a JSON schema behind the scenes. The agent is forced to use the `SetModelResponseTool` to return the final answer.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Runner;
+using System.Text.Json.Serialization;
+
+// 1. Define the desired C# output object structure
+public class SchemaOutput
+{
+    [JsonPropertyName("summary")]
+    public string? Summary { get; set; }
+
+    [JsonPropertyName("confidenceScore")]
+    public double? ConfidenceScore { get; set; }
+}
+
+// 2. Configure the agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "schema_agent",
+    Model = "gemini-2.5-flash",
+    // Instruct the agent to strictly follow the schema
+    Instruction = "Return a JSON response matching the schema using the set_model_response tool.",
+    
+    // Apply the C# type definition
+    OutputSchema = typeof(SchemaOutput)
+});
+
+var runner = new InMemoryRunner("output-schema-sample", agent);
+
+var userMessage = new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Provide a summary of the Eiffel Tower." }]
+};
+
+// 3. Execution
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+{
+    if (evt.IsFinalResponse() && evt.Content?.Parts != null)
+    {
+        foreach (var part in evt.Content.Parts)
+        {
+            if (part.Text != null)
+            {
+                // The output will strictly conform to the SchemaOutput JSON structure
+                Console.WriteLine($"Agent: {part.Text}");
+                // Example Output: {"summary": "An iron lattice tower on the Champ de Mars...", "confidenceScore": 0.99}
+            }
+        }
+    }
+}
+```
+
+The underlying JSON object returned by the model is exposed as a string representation in the `Text` field, which you can easily deserialize back into the `SchemaOutput` object natively in your application code.
+---
+
+# docs/planning.md
+
+# Planning
+
+Standard LLMs utilize "autoregressive" generation, meaning they predict the next token immediately without explicitly "thinking" ahead. While powerful, this struggles with multi-step reasoning tasks (e.g., "Schedule a meeting, but if X is busy, email Y instead").
+
+The ADK solves this by integrating **Planners** into the agent execution pipeline.
+
+## The ReAct Planner
+
+The most common implementation provided by the ADK is the `PlanReActPlanner`. ReAct (Reasoning + Acting) fundamentally changes how the model is prompted. It instructs the LLM to output an explicit "Thought" block formulating its internal logic and strategy prior to executing a tool or delivering an action.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Planning;
+using GoogleAdk.Core.Runner;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "planner_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are a highly logical and meticulous assistant.",
+    
+    // Inject the ReAct planner into the middleware pipeline
+    Planner = new PlanReActPlanner()
+});
+
+var runner = new InMemoryRunner("planning-sample", agent);
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest { AppName = "planning-sample", UserId = "user-1" });
+
+var userMessage = new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Plan a weekend itinerary for Paris based on typical weather." }]
+};
+
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+{
+    var text = evt.Content?.Parts?.FirstOrDefault()?.Text;
+    if (!string.IsNullOrWhiteSpace(text))
+    {
+        Console.WriteLine(text);
+    }
+}
+```
+
+Behind the scenes, the `NlPlanningRequestProcessor` intercepts the request, appends strict instructional logic requiring "Thought" definitions, and handles the `NlPlanningResponseProcessor` mapping during response parsing.
+
+## Built-in Planner Configuration
+
+For models that natively support specific "thinking" mechanisms directly via their REST API schemas, you can utilize the `BuiltInPlanner` to pass specific configurations directly to the underlying model adapter.
+
+```csharp
+// Configures the LLM provider's native "thinking" mechanism (e.g., high-reasoning mode)
+var builtInPlanner = new BuiltInPlanner(new ThinkingConfig 
+{ 
+    ThinkingBudget = 1024
+});
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "builtin_planner_agent",
+    Model = "gemini-2.5-flash",
+    Planner = builtInPlanner
+});
+```
+---
+
+# docs/plugins.md
+
+# Plugins
+
+The ADK includes a powerful plugin system that allows you to intercept and modify the execution pipeline at key lifecycle stages. Plugins are ideal for implementing cross-cutting concerns like telemetry, auditing, security gating, and debugging.
+
+## Core Plugin Architecture
+
+You create a custom plugin by inheriting from `BasePlugin` and overriding the desired virtual lifecycle methods.
+
+```csharp
+using GoogleAdk.Core.Plugins;
+using GoogleAdk.Core.Context;
+using GoogleAdk.Core.Abstractions.Events;
+
+public class LoggingPlugin : BasePlugin
+{
+    private readonly Action<string> _logAction;
+
+    public LoggingPlugin(Action<string> logAction)
+    {
+        _logAction = logAction;
+    }
+
+    // Intercept when the user's initial message is received
+    public override Task<Content?> OnUserMessageCallbackAsync(InvocationContext context, Content message)
+    {
+        _logAction($"[User]: {message.Parts?.FirstOrDefault()?.Text}");
+        return Task.FromResult<Content?>(null); // Return null to continue unmodified
+    }
+
+    // Intercept generic events emitted by the runner
+    public override Task<Event?> OnEventCallbackAsync(InvocationContext context, Event adkEvent)
+    {
+        _logAction($"[Event]: {adkEvent.Author} emitted {adkEvent.Id}");
+        return Task.FromResult<Event?>(null);
+    }
+}
+```
+
+## Security & Policy Engine Plugins
+
+A very common use case for plugins is enforcing execution boundaries. The `SecurityPlugin` acts as a gatekeeper, evaluating tool calls against an `IBasePolicyEngine` before allowing execution.
+
+### Creating a Custom Policy Engine
+
+You can implement an `IBasePolicyEngine` that defines a granular permission set, such as a deny list, allow list, or required confirmations.
+
+```csharp
+using GoogleAdk.Core.Plugins;
+using GoogleAdk.Core.Context;
+
+public class DenyListPolicyEngine : IBasePolicyEngine
+{
+    private readonly HashSet<string> _denyList = new() { "dangerous_tool", "drop_table" };
+    private readonly HashSet<string> _confirmList = new() { "sensitive_tool" };
+
+    public Task<PolicyCheckResult> EvaluateAsync(ToolCallPolicyContext context)
+    {
+        var toolName = context.Tool.Name;
+
+        // Immediately block execution
+        if (_denyList.Contains(toolName))
+            return Task.FromResult(new PolicyCheckResult
+            {
+                Outcome = PolicyOutcome.Deny,
+                Reason = $"Tool '{toolName}' is strictly prohibited."
+            });
+
+        // Pause execution and require human confirmation
+        if (_confirmList.Contains(toolName))
+            return Task.FromResult(new PolicyCheckResult
+            {
+                Outcome = PolicyOutcome.Confirm,
+                Reason = $"Tool '{toolName}' accesses PII and requires manual confirmation."
+            });
+
+        // Standard execution
+        return Task.FromResult(new PolicyCheckResult
+        {
+            Outcome = PolicyOutcome.Allow,
+            Reason = "Approved."
+        });
+    }
+}
+```
+
+## Wiring Plugins to the Runner
+
+Plugins are instantiated and registered globally across your `Runner` via the `RunnerConfig`.
+
+```csharp
+var logs = new List<string>();
+var loggingPlugin = new LoggingPlugin(msg => logs.Add(msg));
+
+var customPolicy = new DenyListPolicyEngine();
+var securityPlugin = new SecurityPlugin(customPolicy);
+
+var runner = new Runner(new RunnerConfig
+{
+    AppName = "plugins-sample",
+    Agent = myAgent,
+    // Apply plugins to the execution pipeline
+    Plugins = [ loggingPlugin, securityPlugin ]
+});
+```
+---
+
+# docs/pubsub-message-tool.md
+
+# Pub/Sub Message Tool
+
+The `PubSubMessageTool` allows your agents to publish messages to Google Cloud Pub/Sub topics, enabling them to trigger downstream asynchronous workflows or notify microservices.
+
+## Usage
+
+Ensure your application has the `roles/pubsub.publisher` IAM role for the target topics.
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "automation_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "If a user asks to trigger a build, publish a message to the 'build-triggers' topic in project 'my-project'.",
+    Tools = [ new PubSubMessageTool() ]
+});
+```
+
+### LLM Parameters
+The agent will automatically provide:
+- `projectId` (string, required) 
+- `topicId` (string, required) 
+- `message` (string, required) - The payload of the message.
+
+The tool returns the `MessageId` upon successful publication.
+---
+
+# docs/rubric-based-evaluator.md
+
+# RubricBasedEvaluator
+
+The `RubricBasedEvaluator` is a built-in evaluation tool in the `GoogleAdk.Evaluation` library. It uses a large language model (an "LLM Judge") to evaluate an agent's response against a specific, natural-language grading rubric.
+
+## Overview
+
+When building AI agents, it can be difficult to deterministically measure the quality of a response (like clarity, tone, or helpfulness). The `RubricBasedEvaluator` solves this by prompting an LLM with the user's input, the expected output (if available), the agent's actual output, and your specific instructions on how to score the interaction.
+
+## Usage
+
+You configure the evaluator by providing a model for the judge, a metric name, and a string that contains the rubric.
+
+```csharp
+using GoogleAdk.Core.Abstractions.Models;
+using GoogleAdk.Evaluation.Evaluators;
+
+var judgeModel = new LlmModel("gemini-2.5-flash");
+
+var rubricEvaluator = new RubricBasedEvaluator(
+    name: "HelpfulnessScore",
+    judgeModel: judgeModel,
+    rubricDescription: """
+        Evaluate how helpful the ACTUAL OUTPUT is for the USER INPUT.
+        - Score 1.0: Extremely helpful, directly answers the prompt, friendly tone.
+        - Score 0.5: Somewhat helpful but misses details or has a flat tone.
+        - Score 0.0: Unhelpful, irrelevant, or incorrect.
+        """
+);
+```
+
+### Applying the Evaluator
+
+Pass the configured evaluator into your `LocalEvalService.EvaluateAsync` method. The evaluator will automatically be applied to every `EvalCase` in the set.
+
+```csharp
+var scoredResults = await evalService.EvaluateAsync(
+    evalSet, 
+    inferenceResults, 
+    [rubricEvaluator]);
+
+var firstCaseMetrics = scoredResults[0].Invocations[0].Metrics;
+var helpfulnessResult = firstCaseMetrics["HelpfulnessScore"];
+
+Console.WriteLine($"Score: {helpfulnessResult.Score}");
+Console.WriteLine($"Reason: {helpfulnessResult.Reason}");
+```
+
+## How It Works
+
+Under the hood, `RubricBasedEvaluator` extends [`LlmAsJudgeEvaluator`](llm-as-judge-evaluator.md). It formulates a prompt containing:
+1. Your Rubric
+2. The User Input
+3. The Expected Output (from your `EvalCase.FinalResponse`)
+4. The Actual Output (the response generated by your agent during inference)
+
+By default, the evaluator forces the judge model to output JSON with a `"score"` (float) and a `"reason"` (string), ensuring you get a reliable, parsable metric back.
+---
+
+# docs/running-agents.md
+
+# Running Agents
+
+Agents must execute within a `Runner` environment that manages session state, artifacts, memory, and telemetry.
+
+## Available Runners
+
+- **[ADK Web](adk-web.md)**: Interactive Blazor dashboard for visual debugging.
+- **[ADK Server A2A](adk-server-a2a.md)**: HTTP APIs for synchronous, streaming, and Agent-to-Agent execution.
+- **[Console Runner](console-runner.md)**: Interactive terminal experience using `Spectre.Console`.
+- **[Custom Runner](custom-runner.md)**: Core `Runner` class for deep integration into background services.
+
+## Core `Runner` Invocation
+
+Execution requires a `Runner`, a `SessionId` (tied to a user and app), and input `Content`.
+
+```csharp
+var runner = new InMemoryRunner("cli-app", myAgent);
+
+// Fetch or create a session
+var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest
+{
+    AppName = "cli-app", UserId = "dev-user"
+});
+
+// Run and stream events
+await foreach (var evt in runner.RunAsync("dev-user", session.Id, userMessage))
+{
+    // Handle output
+}
+```
+
+## Run Configurations
+
+Control execution behavior, limits, and multimodality using `RunConfig`:
+
+```csharp
+var runConfig = new RunConfig
+{
+    MaxLlmCalls = 10,
+    PauseOnToolCalls = true,
+    ResponseModalities = ["AUDIO"],
+    SaveInputBlobsAsArtifacts = true
+};
+```
+
+## Persistent Sessions
+
+Replace default `InMemory` services with `EfCoreSessionService` for production databases (e.g., SQLite, Postgres).
+
+```csharp
+var dbOptions = new DbContextOptionsBuilder<AdkSessionDbContext>()
+    .UseSqlite("Data Source=adk_sessions.db")
+    .Options;
+
+var runnerConfig = new RunnerConfig
+{
+    AppName = "production_app",
+    Agent = myAgent,
+    SessionService = new EfCoreSessionService(new PooledDbContextFactory<AdkSessionDbContext>(dbOptions)),
+    ArtifactService = new FileArtifactService("artifacts") // Persist to disk
+};
+
+var runner = new Runner(runnerConfig);
+```
+---
+
+# docs/skills.md
+
+# Using Skills
+
+Skills provide a standardized way to equip ADK agents with new capabilities by wrapping instructions, documentation (references), resources (assets), and executable scripts into a single packaged unit. The C# ADK includes a full implementation matching the Python ADK.
+
+## Concepts
+
+A `Skill` is a self-contained capability mapped from a folder containing:
+- **`SKILL.md` (Frontmatter and Instructions):** Defines the name, description, and the core markdown prompt on how to use the skill.
+- **Resources (`References`):** Markdown docs or text files guiding the model.
+- **Resources (`Assets`):** Code templates, schemas, data files, or text.
+- **Resources (`Scripts`):** Executable bash/python code the agent can run.
+
+## Defining a Skill in C#
+
+You define a skill by instantiating the `Skill` model and its `Frontmatter` and `Resources`.
+
+```csharp
+using GoogleAdk.Core.Skills;
+using GoogleAdk.Core.Tools;
+
+var skill = new Skill
+{
+    Frontmatter = new Frontmatter
+    {
+        Name = "hello-world-skill",
+        Description = "A skill to greet the world."
+    },
+    Instructions = "When asked to greet, you MUST use `load_skill_resource` to read `assets/greetings.json` first."
+};
+
+// Add resources (simulating files in a directory)
+skill.Resources.Assets["greetings.json"] = "[\"Hello World\", \"Hola Mundo\"]";
+skill.Resources.Scripts["greet.sh"] = new Script { Src = "echo 'Greeting executed'" };
+```
+
+## Loading skills from disk (`SkillLoader`)
+
+For production or samples, you usually load skills from a folder on disk instead of building `Skill` objects by hand. Use `GoogleAdk.Core.Skills.SkillLoader.LoadFromDirectory`.
+
+### Folder layout
+
+Point `LoadFromDirectory` at a directory that contains:
+
+| Path | Required | Purpose |
+|------|----------|---------|
+| `SKILL.md` | Yes | YAML frontmatter between `---` delimiters, then markdown body (L2 instructions). |
+| `references/` | No | Extra docs; files become keys like `doc.md` (relative path under this folder). |
+| `assets/` | No | Templates, JSON, images, etc.; same relative-key rules. |
+| `scripts/` | No | Script source; each file becomes a `Script` entry keyed by relative path. |
+
+Example `SKILL.md`:
+
+```markdown
+---
+name: my-skill
+description: Short line the model uses to decide when to load this skill.
+---
+Full instructions for the model go here after the closing `---`.
+```
+
+Frontmatter is parsed with YamlDotNet. Supported keys today include `name`, `description`, `license`, `compatibility`, `allowed-tools`, and a nested `metadata` map (when YamlDotNet deserializes it as a dictionary).
+
+Text files under `references/` and `assets/` are read as UTF-8 strings. A small set of extensions (for example `.png`, `.jpg`, `.pdf`, `.zip`) are loaded as `byte[]` for binary handling in tools.
+
+### Single skill from a path
+
+```csharp
+using GoogleAdk.Core.Skills;
+using GoogleAdk.Core.Tools;
+
+var skill = SkillLoader.LoadFromDirectory("/path/to/my-skill");
+var toolset = new SkillToolset(new[] { skill });
+```
+
+The path can be absolute or relative to the process current directory. At runtime, console apps often run from `bin/Debug/net10.0/`, so resolve the skill root explicitly (for example walk parent directories from `AppContext.BaseDirectory`, or copy the skill folder into output with MSBuild).
+
+### Multiple skills (dynamic catalog)
+
+`SkillLoader` loads one skill per directory. To expose several skills, load each folder and pass the list to one toolset:
+
+```csharp
+var skillsDir = "/path/to/skills"; // contains subfolders, each with its own SKILL.md
+var skills = Directory
+    .GetDirectories(skillsDir)
+    .Select(SkillLoader.LoadFromDirectory)
+    .ToList();
+
+var toolset = new SkillToolset(skills);
+```
+
+Duplicate `Frontmatter.Name` values are rejected by `SkillToolset` at construction time.
+
+### Sample: `.skill` next to the project
+
+The **`samples/GoogleAdk.Samples.Skills`** sample ships a `.skill/` folder beside the project. At startup it walks parent directories starting from `AppDomain.CurrentDomain.BaseDirectory` until it finds a directory named `.skill`, then calls `SkillLoader.LoadFromDirectory`. That way the skill still resolves when the process runs from `bin/Debug/net10.0/` or from the solution root.
+
+## Creating the Toolset
+
+The `SkillToolset` handles all LLM prompting and tool registration required for your agent to discover and interact with the skill.
+
+```csharp
+// Pass your skills to the toolset. 
+// Optional: provide a BaseCodeExecutor if you want your agent to execute scripts via `run_skill_script`.
+var toolset = new SkillToolset(new[] { skill }, optionalCodeExecutor);
+
+// Add to your agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "SkillAgent",
+    Model = "gemini-2.5-flash",
+    Instruction = "You are an assistant.",
+    Tools = [toolset]
+});
+```
+
+## How It Works
+
+When `SkillToolset` is added to an agent:
+1. It automatically appends systemic guidance telling the LLM about available skills.
+2. It registers 4 foundational tools:
+   - `list_skills`
+   - `load_skill` (to read `Instructions`)
+   - `load_skill_resource` (to inspect files)
+   - `run_skill_script` (to execute scripts via the code executor)
+3. The LLM interacts autonomously to load instructions, read files, and execute code as defined by your custom skill.
+---
+
+# docs/spanner-tools.md
+
+# Cloud Spanner Tools
+
+The ADK provides built-in tools for Google Cloud Spanner:
+- **`SpannerQueryTool`**: Executes standard SQL queries.
+- **`SpannerSearchTool`**: For RAG flows. Performs vector similarity searches using text queries dynamically converted to embeddings.
+
+## Usage
+
+Ensure your environment is authenticated with Google Cloud and has appropriate IAM roles.
+
+### Query Tool
+
+When invoked, the LLM provides `projectId`, `instanceId`, `databaseId`, and the SQL `query`.
+
+```csharp
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "spanner_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = "Query Spanner. Use projectId 'my-project', instanceId 'prod-instance', and databaseId 'main-db'.",
+    Tools = [ new SpannerQueryTool() ]
+});
+```
+
+### Search Tool
+
+Abstracts embedding generation by converting a search phrase (e.g., "how to reset password") into embeddings for a KNN vector search.
+
+```csharp
+var supportAgent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "support_agent",
+    Model = "gemini-2.5-flash",
+    Instruction = @"Use SpannerSearch for articles. 
+        Use projectId 'my-project', instanceId 'docs', databaseId 'articles'.
+        Table is 'HelpDocs', embedding column is 'ContentEmbeddings'.
+        Use 'text-embedding-004' for the modelName.",
+    Tools = [ new SpannerSearchTool() ]
+});
+```
+---
+
+# docs/state.md
+
+# State Management
+
+The ADK provides a built-in `State` system to manage conversational context, session data, and application-level state throughout an agent's execution. State allows you to persist data across multiple turns of a conversation or temporarily within a single invocation.
+
+## State Scopes
+
+State is managed using keys, and the framework recognizes several prefixes to determine the scope and lifecycle of the data:
+
+| Prefix | Scope | Lifecycle & Persistence |
+| :--- | :--- | :--- |
+| **`user:`** | User | Persists across all of the user's sessions globally. |
+| **`app:`** | Application | Shared globally across all users and sessions for this app. |
+| **`temp:`** | Invocation | Temporary context for the current turn. Cleared automatically when the interaction ends. |
+| *(None)* | Session | Default scope. Persists for the lifetime of the current session. |
+
+```mermaid
+flowchart TD
+    subgraph App [App Scope 'app:']
+        subgraph User [User Scope 'user:']
+            subgraph Session [Session Scope 'default']
+                subgraph Invocation [Invocation Scope 'temp:']
+                    Tool[Tool Execution]
+                    Callback[Agent Callback]
+                end
+            end
+        end
+    end
+    
+    Tool -.->|Read/Write| Invocation
+    Callback -.->|Read/Write| Invocation
+```
+
+## Using State in Callbacks and Tools
+
+The state is accessible via the `AgentContext` object provided to your tools and callbacks as `ctx.State`. 
+
+### Reading State
+
+You can retrieve values from the state using the generic `Get<T>` method. It checks for any pending updates (deltas) first, and falls back to the persisted session state.
+
+```csharp
+var username = ctx.State.Get<string>("user:name", "Guest");
+var currentStep = ctx.State.Get<int>("current_step", 0);
+var tempFlag = ctx.State.Get<bool>("temp:flag", false);
+```
+
+### Writing State
+
+To update the state, use the `Set` method. This updates both the current state value and the pending `Delta`, which will be automatically committed at the end of the invocation.
+
+```csharp
+ctx.State.Set("user:name", "Alice");
+ctx.State.Set("current_step", 1);
+ctx.State.Set("temp:flag", true);
+```
+
+### Checking for Keys
+
+You can check if a specific key exists in the state using the `Has` method.
+
+```csharp
+if (ctx.State.Has("user:name"))
+{
+    // Do something
+}
+```
+
+## State Delta
+
+> **Note:** You don't need to manually save the state; the ADK orchestrates this automatically based on the `EventActions.StateDelta` tracking.
+
+The `State` object internally maintains both the current persisted `_value` and a pending `_delta`. Whenever you modify the state during an agent invocation, the changes are recorded in the delta. At the end of the interaction, the ADK automatically merges this delta into the session and persists it using your configured `SessionService` (e.g., `InMemorySessionService`, `DatabaseSessionService`).
+
+---
+
+# docs/streaming.md
+
+# Streaming & Live/Bidirectional Protocols
+
+The ADK is built around continuous streaming. Instead of waiting for a complete LLM response to finish generating, the ADK immediately emits partial text chunks as they arrive. This provides a highly responsive and fluid user experience.
+
+There are two primary modes of streaming within the ADK.
+
+| Feature | `RunAsync` (Standard) | `RunLiveAsync` (Bidirectional) |
+| :--- | :--- | :--- |
+| **Connection Lifecycle** | Opens and closes per request. | Persistent, long-lived connection. |
+| **Input Method** | Single `Content` payload. | Continuous stream via `LiveRequestQueue`. |
+| **Best For** | Chatbots, text generation, standard API endpoints. | Voice assistants, real-time multimodal apps, low-latency loops. |
+
+## 1. Standard Event Streaming (`RunAsync`)
+
+The most common way to consume ADK outputs is via the standard asynchronous event stream.
+
+`runner.RunAsync` returns an `IAsyncEnumerable<Event>`. You iterate over these events continuously.
+
+```csharp
+using GoogleAdk.Core.Runner;
+
+var runner = new InMemoryRunner("streaming-app", myAgent);
+
+// Initiate the run
+await foreach (var evt in runner.RunAsync("user-1", session.Id, userInputContent))
+{
+    // ADK events contain a 'Partial' flag. When true, this is a streaming chunk of a larger message.
+    // When false, the event represents a completed action or final response block.
+    
+    var text = evt.Content?.Parts?.FirstOrDefault()?.Text ?? string.Empty;
+    
+    if (evt.Partial == true && !string.IsNullOrWhiteSpace(text))
+    {
+        // Write chunks directly to the console or UI without appending a newline
+        Console.Write(text);
+    }
+    else if (evt.IsFinalResponse() && !string.IsNullOrWhiteSpace(text))
+    {
+        // The generation has finished
+        Console.WriteLine();
+    }
+}
+```
+
+## 2. Live/Bidirectional Streaming (`RunLiveAsync`)
+
+For highly interactive, real-time applications (such as voice-driven assistants or live collaborative coding), the ADK supports Live Bidirectional Streaming via `RunLiveAsync`.
+
+Unlike `RunAsync` which resolves a single user request, `RunLiveAsync` establishes a persistent connection to the model. You can continuously stream partial requests (e.g., audio chunks) to the LLM while the LLM simultaneously streams text or audio back to you.
+
+### The Live Request Queue
+
+> **Note:** To push data into the live connection asynchronously, you utilize a `LiveRequestQueue`. This queue acts as a buffer, allowing you to send multiple user inputs (like audio chunks or text messages) over the same open connection without waiting for the model to finish its previous response.
+
+```csharp
+using GoogleAdk.Core.Runner;
+using System.Threading;
+using System.Threading.Tasks;
+
+var queue = new LiveRequestQueue();
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Safety timeout
+
+// 1. Start the Live processing loop in a background task
+var runTask = Task.Run(async () =>
+{
+    try
+    {
+        // The loop remains open, continuously yielding events
+        await foreach (var evt in runner.RunLiveAsync("user-1", session.Id, queue, cancellationToken: cts.Token))
+        {
+            var text = evt.Content?.Parts?.FirstOrDefault()?.Text ?? string.Empty;
+            if (evt.Partial == true && !string.IsNullOrWhiteSpace(text))
+            {
+                Console.Write(text);
+            }
+            else if (evt.IsFinalResponse() && !string.IsNullOrWhiteSpace(text))
+            {
+                Console.WriteLine();
+            }
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Expected timeout or shutdown
+    }
+});
+
+// 2. Stream user inputs dynamically while the loop is running
+await queue.SendContentAsync(new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Provide a 3-bullet plan for learning the ADK." }]
+});
+
+// A second input sent over the exact same live connection
+await queue.SendContentAsync(new Content
+{
+    Role = "user",
+    Parts = [new Part { Text = "Now summarize it into a single sentence." }]
+});
+
+// 3. Close the queue, which signals the live loop to exit cleanly
+queue.Close();
+await runTask;
+```
+
+This pattern drastically reduces latency since the underlying connection remains open and contextual overhead is avoided.
+---
+
+# docs/testing.md
+
+# Testing
+
+The ADK uses standard xUnit for unit and end-to-end testing. The testing suite focuses on verifying the execution of the agent pipeline, tool invocation reliability, processor order operations, and integration via the A2A protocol.
+
+## Running Tests
+
+To run the entire suite:
+
+```bash
+cd Adk/GoogleAdk
+dotnet test
+```
+
+## Structure
+
+- **`GoogleAdk.Core.Tests`**: Contains unit tests for individual processors, memory services, telemetry tracking, and core logic primitives.
+- **`GoogleAdk.E2e.Tests`**: Contains tests that simulate full multi-turn conversational flows, A2A REST HTTP endpoints, and complete orchestration pipelines like Sequential and Parallel agents.
+
+## Testing with InMemory Services
+
+Because the ADK abstracts persistent storage into `SessionService`, `ArtifactService`, and `MemoryService`, writing tests for your complex agent orchestrations is extremely easy without requiring mock databases.
+
+You can rapidly test your agent behavior using the `InMemoryRunner`.
+
+```csharp
+[Fact]
+public async Task CustomAgent_ExecutesTool_AndReturnsSummary()
+{
+    var agent = new LlmAgent(new LlmAgentConfig { ... });
+    
+    // Bootstraps isolated in-memory stores perfect for testing 
+    var runner = new InMemoryRunner("test-app", agent);
+    var session = await runner.SessionService.CreateSessionAsync(new CreateSessionRequest { AppName = "test-app", UserId = "user-1" });
+    
+    var userMessage = new Content { Role = "user", Parts = [new Part { Text = "Test query" }] };
+    
+    var responseReceived = false;
+    await foreach (var evt in runner.RunAsync("user-1", session.Id, userMessage))
+    {
+        if (evt.IsFinalResponse() && evt.Content?.Parts != null)
+        {
+            responseReceived = true;
+        }
+    }
+    
+    Assert.True(responseReceived);
+}
+```
+---
+
+# docs/tools.md
+
+# Tools Overview
+
+Tools provide your agents with the ability to interact with the outside world, fetch data, and perform actions. 
+
+## Built-in Tools
+
+The ADK includes several built-in tools. For detailed usage, check their individual documentation pages:
+
+| Tool Category | Available Tools |
+| :--- | :--- |
+| **Search & AI** | `GoogleSearchTool`, `VertexAiSearchTool`, `DiscoveryEngineSearchTool`, `VertexAiRagRetrievalTool` |
+| **Databases** | `BigQueryQueryTool`, `BigQueryMetadataTool`, `SpannerQueryTool`, `SpannerSearchTool`, `BigtableQueryTool` |
+| **Cloud Services** | `PubSubMessageTool`, `GoogleApiTool`, `ApiHubTool` |
+| **Agent & OS** | `AgentTool` (sub-agents), `ComputerUseTool` (browser/desktop automation), `AuthTool` |
+
+> See the **Tools & Integrations** sidebar for deep dives into configuring and using each of these built-in tools.
+
+## Source Generated Tools (Recommended)
+
+The most robust way to create tools in C# is by using the `[FunctionTool]` attribute. The ADK's source generators automatically parse your XML documentation and method signature to create the JSON schema required by the LLM.
+
+```csharp
+public static partial class WeatherTools
+{
+    /// <summary>Gets the current weather for a specified city.</summary>
+    /// <param name="city">The name of the city (e.g., "Seattle").</param>
+    [FunctionTool]
+    public static object? GetWeather(string city)
+    {
+        return new { city, temperature = 22, condition = "Sunny" };
+    }
+}
+
+// Attach the generated tool to your agent
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "weather_agent",
+    Model = "gemini-2.5-flash",
+    Tools = [WeatherTools.GetWeatherTool]
+});
+```
+
+## Toolsets
+
+`BaseToolset` allows for dynamic, runtime resolution of tool collections.
+
+### OpenAPI Toolset
+Automatically generate tools from an OpenAPI/Swagger specification string or file:
+
+```csharp
+using GoogleAdk.Tools.OpenApi;
+
+// Exposes all operations defined in the swagger spec as callable tools
+var toolset = new OpenAPIToolset(openApiSpecString, "json");
+```
+
+### Agent Toolset (Hierarchical)
+Wrap another configured agent as a tool. When the primary LLM needs specialized expertise, it delegates the task to the sub-agent.
+
+```csharp
+var coordinator = new LlmAgent(new LlmAgentConfig
+{
+    Name = "coordinator",
+    Model = "gemini-2.5-flash",
+    Tools = [new AgentTool(specializedSubAgent)]
+});
+```
+---
+
+# docs/tts.md
+
+# Text-to-Speech (TTS) & Audio Generation
+
+The ADK supports generating audio output directly from compatible language models, such as `gemini-2.5-flash-preview-tts`. You can configure your agents to respond with audio, specify voice configurations, and handle the multimodal audio response within the standard ADK event stream.
+
+## Enabling Audio Output
+
+To enable audio generation, you must configure the agent's `GenerateContentConfig` with the appropriate `ResponseModalities` and `SpeechConfig`.
+
+### Minimal TTS Configuration
+
+```csharp
+using GoogleAdk.Core;
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Abstractions.Models;
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "AudioAgent",
+    // Use a model that supports TTS
+    Model = "gemini-2.5-flash-preview-tts",
+    Instruction = "You are an enthusiastic voice assistant.",
+    // Recommended: disable automatic identity injection for TTS models
+    // to avoid potential API errors depending on the model's support for System Instructions.
+    DisableIdentity = true, 
+    GenerateContentConfig = new GenerateContentConfig
+    {
+        // Specify that we want AUDIO output
+        ResponseModalities = new List<Modality> { Modality.AUDIO },
+        SpeechConfig = new SpeechConfig
+        {
+            VoiceConfig = new VoiceConfig
+            {
+                // Specify a prebuilt voice (e.g., "Aoede", "Puck", "Charon", "Kore", "Fenrir", "Leda")
+                PrebuiltVoiceConfig = new PrebuiltVoiceConfig { VoiceName = "Aoede" }
+            }
+        }
+    }
+});
+```
+
+### Important Notes on TTS Models
+
+Some TTS-specific models (like `gemini-2.5-flash-preview-tts`) have specific API constraints:
+1. **System Instructions:** The API might reject standard `ChatRole.System` messages. The ADK's `MeaiLlm` wrapper handles this internally by detecting `-tts` in the model name and prepending your configured `Instruction` to the user's first prompt.
+2. **Agent Identity:** It's highly recommended to set `DisableIdentity = true` in `LlmAgentConfig` to prevent the ADK from auto-injecting its standard `"You are an agent. Your internal name is..."` prompt, which can interfere with the audio output quality or trigger API errors on strictly constrained models.
+3. **Multi-turn Chat:** Some preview TTS endpoints may only support single-turn requests. 
+
+## Handling the Audio Response
+
+When a TTS model generates an audio response, the ADK event stream will yield an `Event` where the `Content.Parts` list contains an `InlineData` part with the mime type `audio/pcm` or `audio/wav`.
+
+Here is an example of running the agent and saving the generated audio to a file:
+
+```csharp
+using System.IO;
+
+var content = new Content 
+{ 
+    Role = "user", 
+    Parts = new List<Part> { new Part { Text = "Say cheerfully: Have a wonderful day!" } } 
+};
+
+// Use an ephemeral or standard runner
+var resultEnumerable = runner.RunEphemeralAsync("user", content);
+
+await foreach (var evt in resultEnumerable)
+{
+    if (evt.Content?.Parts != null)
+    {
+        foreach (var part in evt.Content.Parts)
+        {
+            // Check for InlineData representing audio
+            if (part.InlineData != null && part.InlineData.MimeType.StartsWith("audio/"))
+            {
+                // The audio data is base64 encoded
+                var audioBytes = Convert.FromBase64String(part.InlineData.Data);
+                
+                // Write the raw PCM or WAV data to a file
+                await File.WriteAllBytesAsync("output_audio.wav", audioBytes);
+                Console.WriteLine($"Audio successfully saved ({audioBytes.Length} bytes)");
+            }
+            // Some models may return text alongside the audio
+            else if (part.Text != null)
+            {
+                Console.WriteLine($"Text Response: {part.Text}");
+            }
+        }
+    }
+}
+```
+
+## Sample Application
+
+A complete, runnable example of the Audio Agent can be found in the `GoogleAdk/samples/GoogleAdk.Samples.AudioAgent` project within the repository.
+---
+
+# docs/vertex-ai-rag-retrieval-tool.md
+
+# Vertex AI RAG Retrieval Tool
+
+!!! warning "Gemini & Vertex AI Only"
+    This tool leverages Google Cloud's Retrieval Config API and is exclusively compatible with Gemini models on Vertex AI.
+
+The `VertexAiRagRetrievalTool` integrates deeply with Google Cloud's Vertex AI to perform Retrieval-Augmented Generation (RAG). 
+
+## Overview
+
+Unlike standard function-calling tools, this tool leverages the `RetrievalConfig` of the Gemini generation API. The Gemini backend automatically queries your specified Vertex AI Data Stores or RAG Corpora *during* text generation, returning rich `GroundingMetadata`.
+
+## Usage
+
+Configure the tool by specifying data stores or corpora for the backend to retrieve from:
+
+```csharp
+using GoogleAdk.Core.Abstractions.Models;
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var ragTool = new VertexAiRagRetrievalTool(
+    ragResources: [
+        new VertexAiSearchDataStoreSpec { DataStore = "projects/my-project/locations/global/collections/default_collection/dataStores/my-docs" }
+    ],
+    // ragCorpora: ["projects/my-project/locations/us-central1/ragCorpora/1234567890"],
+    similarityTopK: 5,
+    vectorDistanceThreshold: 0.3
+);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "rag_agent",
+    Model = "gemini-2.5-pro",
+    Instruction = "Answer based on the provided RAG context.",
+    Tools = [ragTool]
+});
+```
+---
+
+# docs/vertex-ai-search-tool.md
+
+# Vertex AI Search Tool
+
+!!! warning "Gemini & Vertex AI Only"
+    This tool leverages Google Cloud's Discovery Engine APIs and is designed for Gemini models running via Vertex AI.
+
+The `VertexAiSearchTool` (Discovery Engine Search Tool) connects your agent directly to Google Cloud's Vertex AI Search. It enables the agent to execute searches against your enterprise datastores and document collections.
+
+## Usage
+
+You must provide the full Google Cloud Resource ID for your Data Store or Engine.
+
+**Resource ID Format:**
+`projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{datastore_id}`
+
+```csharp
+using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Tools;
+
+var fullDataStoreId = "projects/my-project/locations/global/collections/default_collection/dataStores/my-docs";
+var vertexSearchTool = new VertexAiSearchTool(dataStoreId: fullDataStoreId);
+
+var agent = new LlmAgent(new LlmAgentConfig
+{
+    Name = "enterprise_search_agent",
+    Model = "gemini-2.5-pro",
+    Instruction = "You are an internal IT assistant. Use Vertex AI Search to find answers.",
+    Tools = [vertexSearchTool]
+});
+```
+
+### Grounding Metadata
+
+Responses augmented by Vertex AI Search include `GroundingMetadata` on the output events, allowing you to see exactly which documents were retrieved and cited.
+---
+
+# samples/GoogleAdk.Samples.Skills/.skill/SKILL.md
+
+---
+name: hello-world-skill
+description: A skill to greet the world in different ways based on the available resources.
+---
+When a user asks to use the hello-world-skill, you MUST load the skill resources, specifically `assets/greetings.json`. Read the JSON and return one of the greetings.
+
+---
+
