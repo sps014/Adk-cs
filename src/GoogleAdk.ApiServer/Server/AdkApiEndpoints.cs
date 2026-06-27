@@ -325,6 +325,92 @@ public static class AdkApiEndpoints
             return Results.Json(responseDict, AdkJsonOptions.Default);
         });
 
+        // ── Dev UI (new prefix: /dev/apps/{appName}/...) ───────────────────
+        // Newer ADK web UI builds issue graph/trace/eval/builder calls under a
+        // /dev/apps/{appName}/ prefix. These mirror the handlers above so the UI
+        // renders the agent graph exactly like the Python ADK dev server.
+        app.MapGet("/dev/apps/{appName}/build_graph", (string appName, AgentLoader loader) =>
+        {
+            var agent = loader.GetAgent(appName);
+            var rootAgentNode = AgentGraphBuilder.BuildGraph(agent);
+            return Results.Json(new { name = appName, root_agent = rootAgentNode }, AdkJsonOptions.Default);
+        });
+
+        app.MapGet("/dev/apps/{appName}/build_graph_image", (string appName, AgentLoader loader, [FromQuery(Name = "dark_mode")] bool darkMode = false, [FromQuery(Name = "node")] string? node = null) =>
+        {
+            var agent = loader.GetAgent(appName);
+            var graph = AgentGraphBuilder.BuildGraph(agent, null, darkMode);
+
+            // The UI iterates Object.entries(response) expecting { key: { dotSrc } }.
+            var responseDict = new Dictionary<string, object>
+            {
+                { appName, new { dotSrc = graph } }
+            };
+            return Results.Json(responseDict, AdkJsonOptions.Default);
+        });
+
+        app.MapGet("/dev/apps/{appName}/debug/trace/{eventId}", (string appName, string eventId, InMemoryTraceCollector traces) =>
+        {
+            var trace = traces.GetTraceByEventId(eventId);
+            if (trace == null) return Results.NotFound("Trace not found");
+            return Results.Json(trace, AdkJsonOptions.Default);
+        });
+
+        app.MapGet("/dev/apps/{appName}/debug/trace/session/{sessionId}", (string appName, string sessionId, InMemoryTraceCollector traces) =>
+        {
+            var spans = traces.GetSpansBySessionId(sessionId);
+            return Results.Json(spans, AdkJsonOptions.Default);
+        });
+
+        app.MapGet("/dev/apps/{appName}/users/{userId}/sessions/{sessionId}/events/{eventId}/graph",
+            async (string appName, string userId, string sessionId, string eventId,
+                   RunnerManager mgr, AgentLoader loader, [FromQuery(Name = "dark_mode")] bool darkMode = false) =>
+            {
+                var session = await mgr.SessionService.GetSessionAsync(new GetSessionRequest
+                {
+                    AppName = appName,
+                    UserId = userId,
+                    SessionId = sessionId,
+                });
+
+                if (session is null)
+                    return Results.NotFound(new ApiErrorResponse($"Session not found: {sessionId}"));
+
+                var evt = session.Events?.FirstOrDefault(e => e.Id == eventId);
+                if (evt is null)
+                    return Results.NotFound(new ApiErrorResponse($"Event not found: {eventId}"));
+
+                var agent = loader.GetAgent(appName);
+
+                var highlights = new List<(string, string)>();
+                if (evt.Content?.Parts != null)
+                {
+                    foreach (var part in evt.Content.Parts)
+                    {
+                        if (part.FunctionCall != null && evt.Author != null)
+                            highlights.Add((evt.Author, part.FunctionCall.Name ?? ""));
+                        if (part.FunctionResponse != null && evt.Author != null)
+                            highlights.Add((part.FunctionResponse.Name ?? "", evt.Author));
+                    }
+                }
+                if (highlights.Count == 0 && evt.Author != null)
+                    highlights.Add((evt.Author, ""));
+
+                var graph = AgentGraphBuilder.BuildGraph(agent, highlights, darkMode);
+                return Results.Json(new { dotSrc = graph }, AdkJsonOptions.Default);
+            });
+
+        // Eval stubs under the dev prefix (UI tolerates empty lists).
+        app.MapGet("/dev/apps/{appName}/eval_sets",
+            (string appName) => Results.Json(Array.Empty<object>(), AdkJsonOptions.Default));
+
+        app.MapGet("/dev/apps/{appName}/eval_results",
+            (string appName) => Results.Json(Array.Empty<object>(), AdkJsonOptions.Default));
+
+        // Agent Builder load stub (returns empty config so the builder switch stays disabled).
+        app.MapGet("/dev/apps/{appName}/builder",
+            (string appName) => Results.Text("", "application/x-yaml"));
+
         // ── Debug Trace (per event) ────────────────────────────────────────
         app.MapGet("/debug/trace/{eventId}", (string eventId, InMemoryTraceCollector traces) =>
         {

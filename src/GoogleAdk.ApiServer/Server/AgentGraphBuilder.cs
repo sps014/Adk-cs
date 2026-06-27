@@ -84,7 +84,8 @@ public static class AgentGraphBuilder
             sb.AppendLine($"{indent}subgraph \"{clusterName}\" {{");
             sb.AppendLine($"{indent}  label=\"{EscapeDot(nodeName)}\";");
             sb.AppendLine($"{indent}  style=rounded;");
-            sb.AppendLine($"{indent}  color=\"{LightGray}\";");
+            // Python ADK uses a white cluster border (color=white) on the dark canvas.
+            sb.AppendLine($"{indent}  color=\"{White}\";");
             sb.AppendLine($"{indent}  fontcolor=\"{LightGray}\";");
 
             BuildCluster(sb, agent, parentAgent, highlightSet, highlightEdges, indent + "  ");
@@ -162,29 +163,32 @@ public static class AgentGraphBuilder
         var subs = agent.SubAgents;
         if (subs.Count == 0) return;
 
+        // NOTE: Edges use the bare agent name (agent.Name), NOT GetNodeName(),
+        // to mirror Python ADK's build_cluster (draw_edge(parent_agent.name, ...)).
+        // Nodes/clusters keep the " (Sequential/Parallel/Loop Agent)" suffix.
         if (agent is LoopAgent)
         {
             // parentAgent -> first sub, then sequential edges with wrap-around
             if (parentAgent != null)
-                DrawEdge(sb, GetNodeName(parentAgent), GetNodeName(subs[0]), highlightEdges, isWorkflow: true, indent);
+                DrawEdge(sb, parentAgent.Name, subs[0].Name, highlightEdges, isWorkflow: true, indent);
 
             for (int i = 0; i < subs.Count; i++)
             {
                 BuildDotAgent(sb, subs[i], agent, highlightSet, highlightEdges, indent);
                 var next = subs[(i + 1) % subs.Count];
-                DrawEdge(sb, GetNodeName(subs[i]), GetNodeName(next), highlightEdges, isWorkflow: true, indent);
+                DrawEdge(sb, subs[i].Name, next.Name, highlightEdges, isWorkflow: true, indent);
             }
         }
         else if (agent is SequentialAgent)
         {
             if (parentAgent != null)
-                DrawEdge(sb, GetNodeName(parentAgent), GetNodeName(subs[0]), highlightEdges, isWorkflow: true, indent);
+                DrawEdge(sb, parentAgent.Name, subs[0].Name, highlightEdges, isWorkflow: true, indent);
 
             for (int i = 0; i < subs.Count; i++)
             {
                 BuildDotAgent(sb, subs[i], agent, highlightSet, highlightEdges, indent);
                 if (i < subs.Count - 1)
-                    DrawEdge(sb, GetNodeName(subs[i]), GetNodeName(subs[i + 1]), highlightEdges, isWorkflow: true, indent);
+                    DrawEdge(sb, subs[i].Name, subs[i + 1].Name, highlightEdges, isWorkflow: true, indent);
             }
         }
         else // ParallelAgent
@@ -193,7 +197,7 @@ public static class AgentGraphBuilder
             {
                 BuildDotAgent(sb, sub, agent, highlightSet, highlightEdges, indent);
                 if (parentAgent != null)
-                    DrawEdge(sb, GetNodeName(parentAgent), GetNodeName(sub), highlightEdges, isWorkflow: true, indent);
+                    DrawEdge(sb, parentAgent.Name, sub.Name, highlightEdges, isWorkflow: true, indent);
             }
         }
     }
