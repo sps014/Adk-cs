@@ -383,7 +383,10 @@ public class NewFeaturesTests
 
         var queue = new LiveRequestQueue();
         var events = new List<Event>();
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        // Failsafe timeout only: the loop cancels as soon as the expected event
+        // arrives, so a generous bound avoids flakiness on slow/CI machines
+        // without slowing down the happy path.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var runTask = Task.Run(async () =>
         {
@@ -494,7 +497,7 @@ public class NewFeaturesTests
         Assert.True(tool.IsLongRunning);
         var bash = new ExecuteBashTool(["echo"]);
         var result = await bash.RunAsync(
-            new Dictionary<string, object?> { ["command"] = "dir" },
+            new Dictionary<string, object?> { ["command"] = "echo hello" },
             new AgentContext(CreateInvocationContext(new LlmAgent(new LlmAgentConfig { Name = "a" }))));
         Assert.NotNull(result);
     }

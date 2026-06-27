@@ -8,10 +8,12 @@ using System.Threading.Tasks;
 using GenerativeAI;
 using GenerativeAI.Types;
 using GoogleAdk.Core.Abstractions.Events;
+using GoogleAdk.Core.Abstractions.Logging;
 using GoogleAdk.Core.Abstractions.Models;
 using CacheMetadata = GoogleAdk.Core.Abstractions.Models.CacheMetadata;
 using Google.GenAI;
 using Google.GenAI.Types;
+using Microsoft.Extensions.Logging;
 
 namespace GoogleAdk.Models.Gemini;
 
@@ -20,6 +22,8 @@ namespace GoogleAdk.Models.Gemini;
 /// </summary>
 public sealed class GeminiContextCacheManager
 {
+    private static readonly ILogger Logger = AdkLog.CreateLogger<GeminiContextCacheManager>();
+
     private readonly GenerativeModel _model;
     private readonly Client _genAiClient;
 
@@ -255,7 +259,7 @@ public sealed class GeminiContextCacheManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GeminiContextCacheManager] Failed to create cache: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to create context cache");
             return null;
         }
     }
@@ -268,7 +272,7 @@ public sealed class GeminiContextCacheManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GeminiContextCacheManager] Failed to cleanup cache: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to clean up context cache {CacheName}", cacheName);
         }
     }
 

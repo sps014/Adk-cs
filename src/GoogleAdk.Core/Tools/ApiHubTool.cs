@@ -13,15 +13,15 @@ public sealed class ApiHubTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var location = args.TryGetValue("location", out var locationObj) ? FunctionToolArgs.Get<string>(locationObj) : null;
+        var location = CloudTool.GetString(args, "location");
         if (string.IsNullOrEmpty(location))
-            return new Dictionary<string, object?> { ["error"] = "location is required." };
+            return CloudTool.MissingArgument("location");
 
-        var query = args.TryGetValue("query", out var qObj) ? FunctionToolArgs.Get<string>(qObj) : "";
+        var query = CloudTool.GetString(args, "query") ?? "";
 
         try
         {
@@ -45,19 +45,11 @@ public sealed class ApiHubTool : BaseTool
                 });
             }
 
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "SUCCESS",
-                ["apis"] = results
-            };
+            return CloudTool.Success(("apis", results));
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

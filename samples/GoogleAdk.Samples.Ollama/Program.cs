@@ -43,8 +43,9 @@ AdkEnv.Load();
 // OllamaChatClient calls the Ollama HTTP API directly and automatically
 // enables "think": true when the agent uses BuiltInPlanner with ThinkingConfig.
 // Pull the model with: ollama pull gemma4:e4b
-string modelName = "gemma4:e4b";
-IChatClient ollamaClient = new OllamaChatClient(new Uri("http://localhost:11434"), modelName);
+string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "gemma4:e4b";
+string ollamaHost = Environment.GetEnvironmentVariable("OLLAMA_HOST") ?? "http://localhost:11434";
+IChatClient ollamaClient = new OllamaChatClient(new Uri(ollamaHost), modelName);
 var llm = new MeaiLlm(modelName, ollamaClient);
 
 // Helper to create an agent with thinking enabled

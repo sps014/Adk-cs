@@ -10,11 +10,7 @@ namespace GoogleAdk.Core.Plugins;
 public sealed class DebugLoggingPlugin : BasePlugin
 {
     private readonly string _logPath;
-    private readonly JsonSerializerOptions _options = new()
-    {
-        WriteIndented = false,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
+    private readonly JsonSerializerOptions _options = GoogleAdk.Core.Abstractions.Json.AdkJson.CompactIgnoreNull;
 
     public DebugLoggingPlugin(string logPath) : base(nameof(DebugLoggingPlugin))
     {

@@ -70,13 +70,13 @@ This is very important:
         return Task.FromResult<IReadOnlyList<BaseTool>>(_tools.AsReadOnly());
     }
 
-    public override Task ProcessLlmRequestAsync(AgentContext context, Abstractions.Events.LlmRequest llmRequest)
+    public override async Task ProcessLlmRequestAsync(AgentContext context, Abstractions.Events.LlmRequest llmRequest)
     {
         var instructions = new List<string> { DefaultSkillSystemInstruction };
-        
+
         var listTool = new ListSkillsTool(this);
-        var skillsXml = listTool.RunAsync(new Dictionary<string, object?>(), context).Result as string;
-        
+        var skillsXml = await listTool.RunAsync(new Dictionary<string, object?>(), context) as string;
+
         if (!string.IsNullOrEmpty(skillsXml))
         {
             instructions.Add(skillsXml);
@@ -87,9 +87,7 @@ This is very important:
         // Add tool schemas to the request
         foreach (var tool in _tools)
         {
-            tool.ProcessLlmRequestAsync(context, llmRequest);
+            await tool.ProcessLlmRequestAsync(context, llmRequest);
         }
-
-        return Task.CompletedTask;
     }
 }

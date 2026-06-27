@@ -1,7 +1,9 @@
+using GoogleAdk.Core.Abstractions.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Routing;
 
 namespace GoogleAdk.ApiServer;
@@ -11,13 +13,15 @@ public static class AdkApplicationBuilderExtensions
     public static IApplicationBuilder UseAdk(this IApplicationBuilder app)
     {
         var options = app.ApplicationServices.GetRequiredService<AdkServerOptions>();
+
+        // Route ADK library diagnostics into the host's logging pipeline.
+        var loggerFactory = app.ApplicationServices.GetService<ILoggerFactory>();
+        if (loggerFactory != null)
+            AdkLog.Configure(loggerFactory);
         
         if (options.ShowSwaggerUI)
         {
-            app.UseSwagger(c =>
-            {
-                c.SerializeAsV2 = true;
-            });
+            app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.RoutePrefix = "swagger";

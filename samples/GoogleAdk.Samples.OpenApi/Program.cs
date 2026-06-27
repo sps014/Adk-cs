@@ -1,6 +1,9 @@
+using GoogleAdk.Core;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Models.Gemini;
 using GoogleAdk.Tools.OpenApi;
+
+AdkEnv.Load();
 
 Console.WriteLine("==> Demo: OpenAPIToolset with JSONPlaceholder API\n");
 

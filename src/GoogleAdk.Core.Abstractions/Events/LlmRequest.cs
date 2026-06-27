@@ -127,14 +127,3 @@ public class LlmRequest
     /// </summary>
     public int? CacheableContentsTokenCount { get; set; }
 }
-
-/// <summary>
-/// Marker interface for tools that can be referenced from LlmRequest.
-/// </summary>
-public interface IBaseTool
-{
-    string Name { get; }
-    string Description { get; }
-    bool IsLongRunning { get; }
-    FunctionDeclaration? GetDeclaration();
-}

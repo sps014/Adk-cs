@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GoogleAdk.Core.Abstractions.Artifacts;
+using GoogleAdk.Core.Abstractions.Logging;
 using GoogleAdk.Core.Abstractions.Models;
+using Microsoft.Extensions.Logging;
 
 namespace GoogleAdk.Core.Artifacts;
 
@@ -13,20 +15,19 @@ namespace GoogleAdk.Core.Artifacts;
 /// </summary>
 public class InMemoryArtifactService : IBaseArtifactService
 {
+    private static readonly ILogger Logger = AdkLog.CreateLogger<InMemoryArtifactService>();
+
     // Stores artifacts in memory using their path as the key, mapped to a list of versions
     private readonly ConcurrentDictionary<string, List<(Part Part, ArtifactVersion Metadata)>> _artifacts = new();
 
     /// <inheritdoc/>
     public Task<int> SaveArtifactAsync(SaveArtifactRequest request)
     {
-        if (request.Artifact.InlineData == null && request.Artifact.Text == null)
-        {
-            throw new ArgumentException("Artifact must have either InlineData or Text content.");
-        }
+        ArtifactServiceHelpers.EnsureHasContent(request);
 
         // Determine the virtual storage path based on user, session, and filename
         string artifactPath = GetArtifactPath(request.AppName, request.UserId, request.SessionId, request.Filename);
-        Console.WriteLine("[InMemoryArtifactService] SAVING: " + artifactPath);
+        Logger.LogTrace("Saving artifact {ArtifactPath}", artifactPath);
 
         // Retrieve existing versions or initialize a new list for this artifact
         List<(Part Part, ArtifactVersion Metadata)> list = _artifacts.GetOrAdd(artifactPath, _ => new List<(Part, ArtifactVersion)>());
@@ -136,7 +137,7 @@ public class InMemoryArtifactService : IBaseArtifactService
     public Task<ArtifactVersion?> GetArtifactVersionAsync(LoadArtifactRequest request)
     {
         string artifactPath = GetArtifactPath(request.AppName, request.UserId, request.SessionId, request.Filename);
-        Console.WriteLine("[InMemoryArtifactService] GET_METADATA: " + artifactPath);
+        Logger.LogTrace("Reading artifact metadata {ArtifactPath}", artifactPath);
 
         if (!_artifacts.TryGetValue(artifactPath, out var value))
         {

@@ -101,8 +101,21 @@ A `LoopAgent` recursively runs its sub-agents until a specific completion criter
 
 A common use case is an Actor-Critic model: Agent A generates a draft, Agent B critiques the draft and returns feedback. Agent A generates a new draft based on the feedback. The loop terminates when Agent B explicitly triggers an "Escalate" action indicating approval.
 
+Termination is signalled by setting `context.EventActions.Escalate = true`. The
+simplest way to do that is a `[FunctionTool]` the critic can call; the source
+generator exposes it as `EscalateTool`.
+
 ```csharp
 using GoogleAdk.Core.Agents;
+using GoogleAdk.Core.Abstractions.Tools;
+
+// A tool that ends the loop when the critic is satisfied.
+[FunctionTool(Name = "escalate")]
+static object? Escalate(AgentContext context)
+{
+    context.EventActions.Escalate = true;
+    return new { status = "escalated", message = "Review loop completed." };
+}
 
 var drafter = new LlmAgent(new LlmAgentConfig { Name = "drafter", Instruction = "Write a draft based on feedback." });
 
@@ -110,8 +123,8 @@ var critic = new LlmAgent(new LlmAgentConfig
 { 
     Name = "critic", 
     Instruction = "Score the draft. If it scores >= 8, call the escalate tool to end the loop.",
-    // The LoopTools.EscalateTool triggers the loop termination
-    Tools = [ GoogleAdk.Samples.LoopAgent.LoopTools.EscalateTool ]
+    // EscalateTool is generated from the [FunctionTool] method above.
+    Tools = [ EscalateTool ]
 });
 
 var refinementLoop = new LoopAgent(new LoopAgentConfig

@@ -13,12 +13,12 @@ public sealed class BigQueryMetadataTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var datasetId = args.TryGetValue("datasetId", out var dObj) ? FunctionToolArgs.Get<string>(dObj) : null;
-        var tableId = args.TryGetValue("tableId", out var tObj) ? FunctionToolArgs.Get<string>(tObj) : null;
+        var datasetId = CloudTool.GetString(args, "datasetId");
+        var tableId = CloudTool.GetString(args, "tableId");
 
         try
         {
@@ -32,11 +32,7 @@ public sealed class BigQueryMetadataTool : BaseTool
                 {
                     datasets.Add(dataset.Reference.DatasetId);
                 }
-                return new Dictionary<string, object?>
-                {
-                    ["status"] = "SUCCESS",
-                    ["datasets"] = datasets
-                };
+                return CloudTool.Success(("datasets", datasets));
             }
 
             if (string.IsNullOrEmpty(tableId))
@@ -48,12 +44,9 @@ public sealed class BigQueryMetadataTool : BaseTool
                 {
                     tables.Add(table.Reference.TableId);
                 }
-                return new Dictionary<string, object?>
-                {
-                    ["status"] = "SUCCESS",
-                    ["dataset_info"] = dataset.Resource.Description,
-                    ["tables"] = tables
-                };
+                return CloudTool.Success(
+                    ("dataset_info", dataset.Resource.Description),
+                    ("tables", tables));
             }
 
             var tableInfo = await client.GetTableAsync(datasetId, tableId);
@@ -64,25 +57,18 @@ public sealed class BigQueryMetadataTool : BaseTool
                 ["description"] = f.Description
             }).ToList();
 
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "SUCCESS",
-                ["table_info"] = new Dictionary<string, object?>
+            return CloudTool.Success(
+                ("table_info", new Dictionary<string, object?>
                 {
                     ["id"] = tableInfo.Reference.TableId,
                     ["description"] = tableInfo.Resource.Description,
                     ["schema"] = fields,
                     ["numRows"] = tableInfo.Resource.NumRows
-                }
-            };
+                }));
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

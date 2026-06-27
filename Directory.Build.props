@@ -1,0 +1,18 @@
+<Project>
+
+  <!--
+    Repository-wide build defaults. Applied to every project unless a closer
+    Directory.Build.props overrides it (src/ imports this file explicitly so it
+    can layer on library-only settings such as documentation generation and
+    warnings-as-errors).
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

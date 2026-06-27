@@ -13,13 +13,13 @@ public sealed class BigQueryQueryTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var query = args.TryGetValue("query", out var queryObj) ? FunctionToolArgs.Get<string>(queryObj) : null;
+        var query = CloudTool.GetString(args, "query");
         if (string.IsNullOrEmpty(query))
-            return new Dictionary<string, object?> { ["error"] = "query is required." };
+            return CloudTool.MissingArgument("query");
 
         try
         {
@@ -37,19 +37,11 @@ public sealed class BigQueryQueryTool : BaseTool
                 rows.Add(dict);
             }
 
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "SUCCESS",
-                ["rows"] = rows
-            };
+            return CloudTool.Success(("rows", rows));
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

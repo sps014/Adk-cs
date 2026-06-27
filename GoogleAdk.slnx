@@ -26,6 +26,8 @@
     <File Path="docs/tools.md" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/GoogleAdk.Samples.A2a/GoogleAdk.Samples.A2a.csproj" />
+    <Project Path="samples/GoogleAdk.Samples.RequireConfirmation/GoogleAdk.Samples.RequireConfirmation.csproj" />
     <Project Path="samples/GoogleAdk.Samples.OpenApi/GoogleAdk.Samples.OpenApi.csproj" />
     <Project Path="samples/GoogleAdk.Samples.Orchestration/GoogleAdk.Samples.Orchestration.csproj" />
     <Project Path="samples/GoogleAdk.Samples.GoogleSearch/GoogleAdk.Samples.GoogleSearch.csproj" />

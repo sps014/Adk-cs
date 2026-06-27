@@ -99,11 +99,7 @@ public sealed class A2aClient
     private readonly HttpClient _http;
     private readonly string _baseUrl;
     private readonly string _transport;
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    private readonly JsonSerializerOptions _jsonOptions = GoogleAdk.Core.Abstractions.Json.AdkJson.CamelCaseIgnoreNull;
 
     /// <summary>
     /// Optional interceptor invoked for every outgoing HTTP request, allowing

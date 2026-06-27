@@ -6,8 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.GenAI" Version="1.12.0" />
-    <PackageReference Include="Google_GenerativeAI.Microsoft" Version="3.6.6" />
+    <PackageReference Include="Google.GenAI" />
+    <PackageReference Include="Google_GenerativeAI.Microsoft" />
   </ItemGroup>
 
   <PropertyGroup>

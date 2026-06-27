@@ -1,4 +1,5 @@
 using GoogleAdk.Core.Abstractions.Events;
+using GoogleAdk.Core.Abstractions.Logging;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Agents.Processors;
 using GoogleAdk.Core.CodeExecutors;
@@ -6,6 +7,7 @@ using GoogleAdk.Core.Context;
 using GoogleAdk.Core.Examples;
 using GoogleAdk.Core.Planning;
 using GoogleAdk.Core.Tools;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 
 namespace GoogleAdk.Core.Agents;
@@ -176,8 +178,10 @@ public class LlmAgentConfig : BaseAgentConfig
 /// request processors → tool preprocessors → call model → response processors →
 /// handle function calls → agent transfer. Loops until final response.
 /// </summary>
-public class LlmAgent : BaseAgent
+public partial class LlmAgent : BaseAgent
 {
+    private static readonly ILogger Logger = AdkLog.CreateLogger<LlmAgent>();
+
     public LlmModel? Model { get; set; }
     public Content? StaticInstruction { get; set; }
     public string? Instruction { get; set; }
@@ -380,8 +384,8 @@ public class LlmAgent : BaseAgent
             // Stop here to avoid issuing another LLM call in an unbounded loop.
             if (lastEvent.Partial == true)
             {
-                System.Diagnostics.Trace.TraceWarning(
-                    "LlmAgent: the last event of a step is partial, which is not expected. Stopping the run loop.");
+                Logger.LogWarning(
+                    "The last event of a step is partial, which is not expected. Stopping the run loop.");
                 break;
             }
         }
@@ -508,8 +512,11 @@ public class LlmAgent : BaseAgent
                     }
                     catch (Exception ex) when (!cancellationToken.IsCancellationRequested && attempt < maxReconnectAttempts)
                     {
-                        System.Diagnostics.Trace.TraceWarning(
-                            $"LlmAgent: live connection dropped, reconnecting (attempt {attempt + 1}/{maxReconnectAttempts}): {ex.Message}");
+                        Logger.LogWarning(
+                            ex,
+                            "Live connection dropped, reconnecting (attempt {Attempt}/{MaxAttempts})",
+                            attempt + 1,
+                            maxReconnectAttempts);
                         reconnect = true;
                         break;
                     }
@@ -920,96 +927,6 @@ public class LlmAgent : BaseAgent
         return null;
     }
 
-    private static BeforeModelCallback? ComposeBeforeModel(List<BeforeModelCallback>? list, BeforeModelCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (ctx, req) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(ctx, req);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(ctx, req) : null;
-        };
-    }
-
-    private static AfterModelCallback? ComposeAfterModel(List<AfterModelCallback>? list, AfterModelCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (ctx, resp) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(ctx, resp);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(ctx, resp) : null;
-        };
-    }
-
-    private static OnModelErrorCallback? ComposeOnModelError(List<OnModelErrorCallback>? list, OnModelErrorCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (ctx, req, err) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(ctx, req, err);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(ctx, req, err) : null;
-        };
-    }
-
-    private static BeforeToolCallback? ComposeBeforeTool(List<BeforeToolCallback>? list, BeforeToolCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (tool, args, ctx) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(tool, args, ctx);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(tool, args, ctx) : null;
-        };
-    }
-
-    private static OnToolErrorCallback? ComposeOnToolError(List<OnToolErrorCallback>? list, OnToolErrorCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (tool, args, ctx, err) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(tool, args, ctx, err);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(tool, args, ctx, err) : null;
-        };
-    }
-
-    private static AfterToolCallback? ComposeAfterTool(List<AfterToolCallback>? list, AfterToolCallback? single)
-    {
-        if ((list == null || list.Count == 0) && single == null) return null;
-        return async (tool, args, ctx, resp) =>
-        {
-            if (list != null)
-                foreach (var cb in list)
-                {
-                    var r = await cb(tool, args, ctx, resp);
-                    if (r != null) return r;
-                }
-            return single != null ? await single(tool, args, ctx, resp) : null;
-        };
-    }
-
     private void MaybeSaveOutputToState(Event evt)
     {
         if (evt.Author != Name) return;
@@ -1036,7 +953,7 @@ public class LlmAgent : BaseAgent
             catch (Exception ex)
             {
                 // Keep as string if JSON parse fails
-                System.Diagnostics.Trace.TraceWarning($"Failed to parse JSON output: {ex.Message}");
+                Logger.LogWarning(ex, "Failed to parse JSON output");
             }
         }
 

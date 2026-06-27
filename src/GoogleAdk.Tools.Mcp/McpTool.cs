@@ -45,7 +45,7 @@ public sealed class McpTool : Core.BaseTool
 
         return textParts.Count switch
         {
-            0 => result.IsError ? "Tool returned an error with no content." : null,
+            0 => result.IsError == true ? "Tool returned an error with no content." : null,
             1 => textParts[0],
             _ => string.Join("\n", textParts)
         };

@@ -172,10 +172,7 @@ public class RequestConfirmationLlmRequestProcessor : BaseLlmRequestProcessor
             pending.Remove(id);
     }
 
-    private static readonly JsonSerializerOptions s_caseInsensitiveOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
+    private static readonly JsonSerializerOptions s_caseInsensitiveOptions = GoogleAdk.Core.Abstractions.Json.AdkJson.CaseInsensitive;
 
     private static bool TryParseToolConfirmation(
         Dictionary<string, object?>? response,

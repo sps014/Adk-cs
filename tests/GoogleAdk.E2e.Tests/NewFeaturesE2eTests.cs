@@ -78,7 +78,10 @@ public class NewFeaturesE2eTests
 
         var queue = new LiveRequestQueue();
         var events = new List<Event>();
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        // Failsafe timeout only: the loop cancels as soon as the expected event
+        // arrives, so a generous bound avoids flakiness on slow/CI machines
+        // without slowing down the happy path.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var runTask = Task.Run(async () =>
         {
@@ -125,29 +128,6 @@ public class NewFeaturesE2eTests
             last = evt;
 
         Assert.Equal("sub", last?.Author);
-    }
-
-    private sealed class CapturingLlm : BaseLlm
-    {
-        public LlmRequest? LastRequest { get; private set; }
-
-        public CapturingLlm(string model) : base(model) { }
-
-        public override async IAsyncEnumerable<LlmResponse> GenerateContentAsync(
-            LlmRequest llmRequest,
-            bool stream = false,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            LastRequest = llmRequest;
-            yield return new LlmResponse
-            {
-                Content = new Content { Role = "model", Parts = [new Part { Text = "ok" }] }
-            };
-            await Task.CompletedTask;
-        }
-
-        public override Task<BaseLlmConnection> ConnectAsync(LlmRequest llmRequest)
-            => Task.FromResult<BaseLlmConnection>(new StreamingLlmConnection(this, llmRequest));
     }
 
     private sealed class ToolCallLlm : BaseLlm

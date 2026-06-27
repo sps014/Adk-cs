@@ -14,17 +14,17 @@ public sealed class PubSubMessageTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var topicId = args.TryGetValue("topicId", out var topicIdObj) ? FunctionToolArgs.Get<string>(topicIdObj) : null;
+        var topicId = CloudTool.GetString(args, "topicId");
         if (string.IsNullOrEmpty(topicId))
-            return new Dictionary<string, object?> { ["error"] = "topicId is required." };
+            return CloudTool.MissingArgument("topicId");
 
-        var message = args.TryGetValue("message", out var messageObj) ? FunctionToolArgs.Get<string>(messageObj) : null;
+        var message = CloudTool.GetString(args, "message");
         if (string.IsNullOrEmpty(message))
-            return new Dictionary<string, object?> { ["error"] = "message is required." };
+            return CloudTool.MissingArgument("message");
 
         try
         {
@@ -42,19 +42,11 @@ public sealed class PubSubMessageTool : BaseTool
             // Shutdown publisher gracefully
             await publisher.ShutdownAsync(TimeSpan.FromSeconds(15));
 
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "SUCCESS",
-                ["messageId"] = messageId
-            };
+            return CloudTool.Success(("messageId", messageId));
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

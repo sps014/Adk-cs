@@ -10,7 +10,7 @@
 // Running the sample:
 // 
 // 1. Navigate to the sample directory:
-//    cd GoogleAdk/samples/GoogleAdk.Samples.ComputerUse
+//    cd samples/GoogleAdk.Samples.ComputerUse
 //
 // 2. Variant 1: Console Driver (Simple HTTP scraping, no screenshot)
 //    dotnet run

@@ -52,15 +52,3 @@ public sealed class RealLlmFactAttribute : FactAttribute
             Skip = RealLlmTestConfig.SkipReason;
     }
 }
-
-/// <summary>
-/// A <see cref="TheoryAttribute"/> that skips when no real-LLM credentials are configured.
-/// </summary>
-public sealed class RealLlmTheoryAttribute : TheoryAttribute
-{
-    public RealLlmTheoryAttribute()
-    {
-        if (!RealLlmTestConfig.IsConfigured)
-            Skip = RealLlmTestConfig.SkipReason;
-    }
-}

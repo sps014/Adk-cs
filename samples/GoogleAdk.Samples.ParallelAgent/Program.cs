@@ -12,11 +12,14 @@
 //   GOOGLE_CLOUD_LOCATION=us-central1
 // ============================================================================
 
+using GoogleAdk.Core;
 using GoogleAdk.Core.Abstractions.Events;
 using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Agents;
 using GoogleAdk.Core.Runner;
 using GoogleAdk.Models.Gemini;
+
+AdkEnv.Load();
 
 var model = GeminiModelFactory.Create("gemini-2.5-flash");
 

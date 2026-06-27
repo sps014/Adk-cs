@@ -41,10 +41,7 @@ public static partial class ConsoleRunner
 
             foreach (var call in calls)
             {
-                var argsJson = JsonSerializer.Serialize(call.Args, new JsonSerializerOptions { 
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                });
+                var argsJson = JsonSerializer.Serialize(call.Args, Abstractions.Json.AdkJson.IndentedRelaxed);
                 var panel = new Panel(new JsonText(argsJson))
                     .Header($"[yellow]Tool Call: {Markup.Escape(call.Name)}[/]")
                     .BorderColor(Color.Yellow)
@@ -61,10 +58,7 @@ public static partial class ConsoleRunner
 
             foreach (var resp in responses)
             {
-                var respJson = JsonSerializer.Serialize(resp.Response, new JsonSerializerOptions { 
-                    WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                });
+                var respJson = JsonSerializer.Serialize(resp.Response, Abstractions.Json.AdkJson.IndentedRelaxed);
                 var panel = new Panel(new JsonText(respJson))
                     .Header($"[green]Tool Result: {Markup.Escape(resp.Name)}[/]")
                     .BorderColor(Color.Green)

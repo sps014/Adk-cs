@@ -14,21 +14,21 @@ public sealed class SpannerQueryTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var instanceId = args.TryGetValue("instanceId", out var instanceIdObj) ? FunctionToolArgs.Get<string>(instanceIdObj) : null;
+        var instanceId = CloudTool.GetString(args, "instanceId");
         if (string.IsNullOrEmpty(instanceId))
-            return new Dictionary<string, object?> { ["error"] = "instanceId is required." };
+            return CloudTool.MissingArgument("instanceId");
 
-        var databaseId = args.TryGetValue("databaseId", out var databaseIdObj) ? FunctionToolArgs.Get<string>(databaseIdObj) : null;
+        var databaseId = CloudTool.GetString(args, "databaseId");
         if (string.IsNullOrEmpty(databaseId))
-            return new Dictionary<string, object?> { ["error"] = "databaseId is required." };
+            return CloudTool.MissingArgument("databaseId");
 
-        var query = args.TryGetValue("query", out var queryObj) ? FunctionToolArgs.Get<string>(queryObj) : null;
+        var query = CloudTool.GetString(args, "query");
         if (string.IsNullOrEmpty(query))
-            return new Dictionary<string, object?> { ["error"] = "query is required." };
+            return CloudTool.MissingArgument("query");
 
         string connectionString = $"Data Source=projects/{projectId}/instances/{instanceId}/databases/{databaseId}";
 
@@ -55,29 +55,17 @@ public sealed class SpannerQueryTool : BaseTool
                     rows.Add(row);
                 }
 
-                return new Dictionary<string, object?>
-                {
-                    ["status"] = "SUCCESS",
-                    ["rows"] = rows
-                };
+                return CloudTool.Success(("rows", rows));
             }
             else
             {
                 var rowsAffected = await command.ExecuteNonQueryAsync();
-                return new Dictionary<string, object?>
-                {
-                    ["status"] = "SUCCESS",
-                    ["rows_affected"] = rowsAffected
-                };
+                return CloudTool.Success(("rows_affected", rowsAffected));
             }
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

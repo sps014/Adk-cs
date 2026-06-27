@@ -9,35 +9,6 @@ namespace GoogleAdk.E2e.Tests;
 
 public class ExamplesE2eTests
 {
-    private sealed class CapturingLlm : BaseLlm
-    {
-        public LlmRequest? LastRequest { get; private set; }
-
-        public CapturingLlm(string model) : base(model) { }
-
-        public override async IAsyncEnumerable<LlmResponse> GenerateContentAsync(
-            LlmRequest llmRequest,
-            bool stream = false,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            LastRequest = llmRequest;
-            yield return new LlmResponse
-            {
-                Content = new Content
-                {
-                    Role = "model",
-                    Parts = new List<Part> { new Part { Text = "ok" } }
-                }
-            };
-            await Task.CompletedTask;
-        }
-
-        public override Task<BaseLlmConnection> ConnectAsync(LlmRequest llmRequest)
-        {
-            throw new NotSupportedException();
-        }
-    }
-
     [Fact]
     public async Task ExampleInjection_AppendsSystemInstruction()
     {

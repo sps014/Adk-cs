@@ -134,21 +134,39 @@ Remote agent-to-agent communication uses the
 End-to-end coverage is in `tests/GoogleAdk.E2e.Tests`. See [docs/a2a.md](docs/a2a.md).
 
 
-## 🏗️ Building the Project
+## 🏗️ Building from source
 
-To set up the project and build it from source, follow these steps:
+**Prerequisites:** [.NET SDK 10.0+](https://dotnet.microsoft.com/download).
 
-1. **Install dependencies**:
+```bash
+# 1. Clone
+git clone https://github.com/sps014/GoogleAdk-cs.git
+cd GoogleAdk-cs
 
-   ```bash
-   dotnet restore "GoogleAdk/GoogleAdk.slnx"
-   ```
+# 2. Restore + build the whole solution
+dotnet build GoogleAdk.slnx
 
-2. **Build the project**:
+# 3. (Optional) run the test suite
+dotnet test GoogleAdk.slnx
+```
 
-   ```bash
-   dotnet build "GoogleAdk/GoogleAdk.slnx"
-   ```
+Package versions are managed centrally in
+[`Directory.Packages.props`](Directory.Packages.props), and shared build settings
+live in [`Directory.Build.props`](Directory.Build.props).
+
+### Running a sample
+
+Each sample reads a local `.env` for credentials. Copy the template, add your
+key, and run:
+
+```bash
+cd samples/GoogleAdk.Samples.GoogleSearch
+cp .env.example .env          # then edit .env and set GOOGLE_API_KEY
+dotnet run
+```
+
+See [`samples/README.md`](samples/README.md) for the full sample index and setup
+details.
 
 ## 🤝 Contributing
 

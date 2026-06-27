@@ -14,7 +14,7 @@ public sealed class McpSessionManager
         _connectionParams = connectionParams;
     }
 
-    public async Task<IMcpClient> CreateSessionAsync()
+    public async Task<McpClient> CreateSessionAsync()
     {
         IClientTransport transport = _connectionParams switch
         {
@@ -26,7 +26,7 @@ public sealed class McpSessionManager
                 EnvironmentVariables = stdio.EnvironmentVariables?.ToDictionary(kv => kv.Key, kv => (string?)kv.Value),
                 WorkingDirectory = stdio.WorkingDirectory,
             }),
-            HttpConnectionParams http => new SseClientTransport(new SseClientTransportOptions
+            HttpConnectionParams http => new HttpClientTransport(new HttpClientTransportOptions
             {
                 Endpoint = new Uri(http.Url),
                 Name = "AdkMcpClient",
@@ -34,6 +34,6 @@ public sealed class McpSessionManager
             _ => throw new NotSupportedException($"Unsupported connection params type: {_connectionParams.GetType().Name}")
         };
 
-        return await McpClientFactory.CreateAsync(transport);
+        return await McpClient.CreateAsync(transport);
     }
 }

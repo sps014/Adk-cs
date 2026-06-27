@@ -91,4 +91,4 @@ await foreach (var evt in resultEnumerable)
 
 ## Sample Application
 
-A complete, runnable example of the Audio Agent can be found in the `GoogleAdk/samples/GoogleAdk.Samples.AudioAgent` project within the repository.
+A complete, runnable example of the Audio Agent can be found in the `samples/GoogleAdk.Samples.AudioAgent` project within the repository.

@@ -131,11 +131,7 @@ public static class AdkTracing
         return !string.Equals(envVar, "false", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
+    private static readonly JsonSerializerOptions s_jsonOptions = GoogleAdk.Core.Abstractions.Json.AdkJson.CamelCaseIgnoreNull;
 
     private static string SafeJsonSerialize(object? obj)
     {

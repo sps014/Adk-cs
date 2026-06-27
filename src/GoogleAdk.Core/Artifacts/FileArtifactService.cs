@@ -29,10 +29,7 @@ public class FileArtifactService : IBaseArtifactService
     /// <inheritdoc/>
     public async Task<int> SaveArtifactAsync(SaveArtifactRequest request)
     {
-        if (request.Artifact.InlineData == null && request.Artifact.Text == null)
-        {
-            throw new ArgumentException("Artifact must have either InlineData or Text content.");
-        }
+        ArtifactServiceHelpers.EnsureHasContent(request);
 
         // Create the base directory for the artifact (user/session scoped)
         string artifactDir = GetArtifactDir(request.UserId, request.SessionId, request.Filename);

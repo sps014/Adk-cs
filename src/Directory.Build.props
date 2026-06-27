@@ -1,5 +1,20 @@
 <Project>
+
+  <!-- Layer the repository-wide defaults, then add library-only settings. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+
+    <!--
+      Library projects ship API documentation and are held to a stricter bar.
+      CS1591 (missing XML doc on a public member) is downgraded because doc
+      coverage is being filled in incrementally; malformed-doc warnings
+      (CS1572/CS1573/CS1574) remain errors because they signal real mistakes.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
+
 </Project>

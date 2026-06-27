@@ -14,20 +14,20 @@ public sealed class BigtableQueryTool : BaseTool
 
     public override async Task<object?> RunAsync(Dictionary<string, object?> args, AgentContext context)
     {
-        var projectId = args.TryGetValue("projectId", out var projectIdObj) ? FunctionToolArgs.Get<string>(projectIdObj) : null;
+        var projectId = CloudTool.GetString(args, "projectId");
         if (string.IsNullOrEmpty(projectId))
-            return new Dictionary<string, object?> { ["error"] = "projectId is required." };
+            return CloudTool.MissingArgument("projectId");
 
-        var instanceId = args.TryGetValue("instanceId", out var instanceIdObj) ? FunctionToolArgs.Get<string>(instanceIdObj) : null;
+        var instanceId = CloudTool.GetString(args, "instanceId");
         if (string.IsNullOrEmpty(instanceId))
-            return new Dictionary<string, object?> { ["error"] = "instanceId is required." };
+            return CloudTool.MissingArgument("instanceId");
 
-        var tableId = args.TryGetValue("tableId", out var tableIdObj) ? FunctionToolArgs.Get<string>(tableIdObj) : null;
+        var tableId = CloudTool.GetString(args, "tableId");
         if (string.IsNullOrEmpty(tableId))
-            return new Dictionary<string, object?> { ["error"] = "tableId is required." };
+            return CloudTool.MissingArgument("tableId");
 
-        var rowKey = args.TryGetValue("rowKey", out var rkObj) ? FunctionToolArgs.Get<string>(rkObj) : null;
-        var rowPrefix = args.TryGetValue("rowPrefix", out var rpObj) ? FunctionToolArgs.Get<string>(rpObj) : null;
+        var rowKey = CloudTool.GetString(args, "rowKey");
+        var rowPrefix = CloudTool.GetString(args, "rowPrefix");
         var limitObj = args.GetValueOrDefault("limit");
 
         int limit = 10;
@@ -73,19 +73,11 @@ public sealed class BigtableQueryTool : BaseTool
                 }
             }
 
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "SUCCESS",
-                ["rows"] = results
-            };
+            return CloudTool.Success(("rows", results));
         }
         catch (Exception ex)
         {
-            return new Dictionary<string, object?>
-            {
-                ["status"] = "ERROR",
-                ["error_details"] = ex.Message
-            };
+            return CloudTool.Error(ex);
         }
     }
 

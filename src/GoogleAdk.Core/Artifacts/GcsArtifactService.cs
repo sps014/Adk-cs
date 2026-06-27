@@ -32,10 +32,7 @@ public sealed class GcsArtifactService : IBaseArtifactService
     /// <inheritdoc/>
     public async Task<int> SaveArtifactAsync(SaveArtifactRequest request)
     {
-        if (request.Artifact.InlineData == null && request.Artifact.Text == null)
-        {
-            throw new ArgumentException("Artifact must have either InlineData or Text content.");
-        }
+        ArtifactServiceHelpers.EnsureHasContent(request);
 
         // Build the GCS key prefix for this specific artifact
         string prefix = GetArtifactPrefix(request.AppName, request.UserId, request.SessionId, request.Filename);

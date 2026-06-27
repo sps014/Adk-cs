@@ -25,11 +25,7 @@ public class AuthLlmRequestProcessor : BaseLlmRequestProcessor
     /// </summary>
     private const string ToolsetAuthCredentialIdPrefix = "_adk_toolset_auth_";
 
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-    };
+    private static readonly JsonSerializerOptions s_jsonOptions = GoogleAdk.Core.Abstractions.Json.AdkJson.CamelCaseCaseInsensitive;
 
     public override async IAsyncEnumerable<Event> RunAsync(
         InvocationContext invocationContext,
