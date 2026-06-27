@@ -323,6 +323,9 @@ public static class FunctionCallHandler
 
         if (parts.Count == 0) return null;
 
+        // Mirror adk-python: the confirmation event uses role 'model' and does NOT
+        // carry over the function-response event's actions (which would leak stale
+        // RequestedToolConfirmations / state deltas into history).
         return Event.Create(e =>
         {
             e.InvocationId = invocationContext.InvocationId;
@@ -331,9 +334,8 @@ public static class FunctionCallHandler
             e.Content = new Content
             {
                 Parts = parts,
-                Role = functionResponseEvent.Content?.Role,
+                Role = "model",
             };
-            e.Actions = functionResponseEvent.Actions;
             e.LongRunningToolIds = longRunningToolIds;
         });
     }
@@ -344,6 +346,29 @@ public static class FunctionCallHandler
         Dictionary<string, object?> response,
         EventActions actions)
     {
+        var parts = new List<Part>
+        {
+            new()
+            {
+                FunctionResponse = new FunctionResponse
+                {
+                    Id = functionCall.Id,
+                    Name = functionCall.Name ?? "unknown",
+                    Response = response,
+                }
+            }
+        };
+
+        // When summarization is skipped, add a displayable text part so the tool's
+        // output is not lost in UIs that don't render function-response parts.
+        // Skip the {"result": null} sentinel from control-flow tools (e.g. exit_loop).
+        if (actions.SkipSummarization == true
+            && !response.ContainsKey("error")
+            && IsDisplayableResult(response))
+        {
+            parts.Add(new Part { Text = StringifyToolResult(response) });
+        }
+
         return Event.Create(e =>
         {
             e.InvocationId = invocationContext.InvocationId;
@@ -352,21 +377,37 @@ public static class FunctionCallHandler
             e.Content = new Content
             {
                 Role = "user",
-                Parts = new List<Part>
-                {
-                    new()
-                    {
-                        FunctionResponse = new FunctionResponse
-                        {
-                            Id = functionCall.Id,
-                            Name = functionCall.Name ?? "unknown",
-                            Response = response,
-                        }
-                    }
-                }
+                Parts = parts,
             };
             e.Actions = actions;
         });
+    }
+
+    /// <summary>
+    /// Returns whether a normalized tool response carries a meaningful, displayable
+    /// value (i.e. it is not the {"result": null} sentinel).
+    /// </summary>
+    private static bool IsDisplayableResult(Dictionary<string, object?> response)
+    {
+        if (response.Count == 0)
+            return false;
+        if (response.Count == 1 && response.TryGetValue("result", out var v) && v == null)
+            return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Produces a human-readable string for a skipped-summarization tool result.
+    /// Unwraps the {"result": X} envelope when present.
+    /// </summary>
+    private static string StringifyToolResult(Dictionary<string, object?> response)
+    {
+        if (response.Count == 1 && response.TryGetValue("result", out var v))
+        {
+            if (v is string s) return s;
+            return System.Text.Json.JsonSerializer.Serialize(v);
+        }
+        return System.Text.Json.JsonSerializer.Serialize(response);
     }
 
     private static Event BuildErrorResponseEvent(
@@ -415,6 +456,10 @@ public static class FunctionCallHandler
                 mergedActions.TransferToAgent = evt.Actions.TransferToAgent;
             if (evt.Actions.Escalate == true)
                 mergedActions.Escalate = true;
+            // Preserve skip-summarization when any parallel tool sets it, otherwise a
+            // single tool requesting no summarization would be ignored after the merge.
+            if (evt.Actions.SkipSummarization == true)
+                mergedActions.SkipSummarization = true;
         }
 
         return Event.Create(e =>

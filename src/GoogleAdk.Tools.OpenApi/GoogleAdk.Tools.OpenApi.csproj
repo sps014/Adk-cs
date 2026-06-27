@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.28" />
+    <PackageReference Include="Microsoft.OpenApi.Readers" Version="1.6.29" />
   </ItemGroup>
 
   <PropertyGroup>

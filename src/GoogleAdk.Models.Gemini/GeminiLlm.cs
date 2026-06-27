@@ -324,7 +324,6 @@ public class GeminiLlm : MeaiLlm
                         Parts = finalParts.Count > 0 ? finalParts : new List<AdkPart>()
                     },
                     Partial = false,
-                    TurnComplete = true,
                     RawRepresentation = lastRaw,
                 };
 

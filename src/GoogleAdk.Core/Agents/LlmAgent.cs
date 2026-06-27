@@ -119,6 +119,24 @@ public class LlmAgentConfig : BaseAgentConfig
     /// <summary>After tool callback.</summary>
     public AfterToolCallback? AfterToolCallback { get; set; }
 
+    /// <summary>Ordered list of before-model callbacks. The first non-null result short-circuits.</summary>
+    public List<BeforeModelCallback>? BeforeModelCallbacks { get; set; }
+
+    /// <summary>Ordered list of after-model callbacks. The first non-null result wins.</summary>
+    public List<AfterModelCallback>? AfterModelCallbacks { get; set; }
+
+    /// <summary>Ordered list of model-error callbacks. The first non-null result recovers.</summary>
+    public List<OnModelErrorCallback>? OnModelErrorCallbacks { get; set; }
+
+    /// <summary>Ordered list of before-tool callbacks. The first non-null result short-circuits.</summary>
+    public List<BeforeToolCallback>? BeforeToolCallbacks { get; set; }
+
+    /// <summary>Ordered list of tool-error callbacks. The first non-null result recovers.</summary>
+    public List<OnToolErrorCallback>? OnToolErrorCallbacks { get; set; }
+
+    /// <summary>Ordered list of after-tool callbacks. The first non-null result wins.</summary>
+    public List<AfterToolCallback>? AfterToolCallbacks { get; set; }
+
     /// <summary>Output schema type for structured output. The JSON schema is derived automatically via System.Text.Json.</summary>
     public Type? OutputSchema { get; set; }
 
@@ -204,12 +222,15 @@ public class LlmAgent : BaseAgent
         Planner = config.Planner;
         GenerateContentConfig = config.GenerateContentConfig;
         DisableIdentity = config.DisableIdentity;
-        BeforeModelCallback = config.BeforeModelCallback;
-        AfterModelCallback = config.AfterModelCallback;
-        OnModelErrorCallback = config.OnModelErrorCallback;
-        BeforeToolCallback = config.BeforeToolCallback;
-        OnToolErrorCallback = config.OnToolErrorCallback;
-        AfterToolCallback = config.AfterToolCallback;
+        // Compose optional callback lists with the single-callback convenience
+        // properties into one effective delegate each. Callbacks run in order and
+        // the first non-null result short-circuits (mirrors adk-python callback lists).
+        BeforeModelCallback = ComposeBeforeModel(config.BeforeModelCallbacks, config.BeforeModelCallback);
+        AfterModelCallback = ComposeAfterModel(config.AfterModelCallbacks, config.AfterModelCallback);
+        OnModelErrorCallback = ComposeOnModelError(config.OnModelErrorCallbacks, config.OnModelErrorCallback);
+        BeforeToolCallback = ComposeBeforeTool(config.BeforeToolCallbacks, config.BeforeToolCallback);
+        OnToolErrorCallback = ComposeOnToolError(config.OnToolErrorCallbacks, config.OnToolErrorCallback);
+        AfterToolCallback = ComposeAfterTool(config.AfterToolCallbacks, config.AfterToolCallback);
         OutputSchema = config.OutputSchema;
         InputSchema = config.InputSchema;
         OutputKey = config.OutputKey;
@@ -222,6 +243,7 @@ public class LlmAgent : BaseAgent
         RequestProcessors = config.RequestProcessors ?? new List<BaseLlmRequestProcessor>
         {
             BasicLlmRequestProcessor.Instance,
+            AuthLlmRequestProcessor.Instance,
             IdentityLlmRequestProcessor.Instance,
             InstructionsLlmRequestProcessor.Instance,
             NlPlanningRequestProcessor.Instance,
@@ -250,6 +272,7 @@ public class LlmAgent : BaseAgent
         ResponseProcessors = config.ResponseProcessors ?? new List<BaseLlmResponseProcessor>
         {
             NlPlanningResponseProcessor.Instance,
+            CodeExecutionResponseProcessor.Instance,
         };
 
         // Validate generateContentConfig
@@ -352,6 +375,15 @@ public class LlmAgent : BaseAgent
 
             if (lastEvent == null || lastEvent.IsFinalResponse())
                 break;
+
+            // A step that ends on a partial (streaming) event is not expected.
+            // Stop here to avoid issuing another LLM call in an unbounded loop.
+            if (lastEvent.Partial == true)
+            {
+                System.Diagnostics.Trace.TraceWarning(
+                    "LlmAgent: the last event of a step is partial, which is not expected. Stopping the run loop.");
+                break;
+            }
         }
     }
 
@@ -406,6 +438,9 @@ public class LlmAgent : BaseAgent
             }
             else if (toolUnion is BaseToolset toolset)
             {
+                // Let the toolset mutate the request at the set level (e.g. MCP)
+                // before individual tools run their preprocessors.
+                await toolset.ProcessLlmRequestAsync(toolContext, llmRequest);
                 var resolvedTools = await toolset.GetToolsAsync(toolContext);
                 foreach (var tool in resolvedTools)
                     await tool.ProcessLlmRequestAsync(toolContext, llmRequest);
@@ -428,43 +463,91 @@ public class LlmAgent : BaseAgent
         });
 
         var llm = CanonicalModel;
-        invocationContext.IncrementLlmCallCount();
-        await using var connection = await llm.ConnectAsync(llmRequest);
+        const int maxReconnectAttempts = 5;
 
-        if (llmRequest.Contents.Count > 0)
-            await connection.SendHistoryAsync(llmRequest.Contents, cancellationToken);
-
-        var sendTask = Task.Run(async () =>
+        // Reconnect loop: if the live connection drops unexpectedly (not due to a
+        // normal close / cancellation) we re-establish it up to a bounded number of
+        // attempts, re-sending the conversation history. Mirrors adk-python run_live.
+        for (int attempt = 0; ; attempt++)
         {
-            await foreach (var liveRequest in invocationContext.LiveRequestQueue!.ReadAllAsync(cancellationToken))
+            invocationContext.IncrementLlmCallCount();
+            await using var connection = await llm.ConnectAsync(llmRequest);
+
+            if (llmRequest.Contents.Count > 0)
+                await connection.SendHistoryAsync(llmRequest.Contents, cancellationToken);
+
+            using var sendCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var sendTask = Task.Run(async () =>
             {
-                if (liveRequest.Close)
-                    break;
+                await foreach (var liveRequest in invocationContext.LiveRequestQueue!.ReadAllAsync(sendCts.Token))
+                {
+                    if (liveRequest.Close)
+                        break;
 
-                if (liveRequest.Activity != null)
-                    continue;
+                    if (liveRequest.Activity != null)
+                        await connection.SendActivityAsync(liveRequest.Activity == LiveActivity.Start, sendCts.Token);
+                    else if (liveRequest.RealtimePart != null)
+                        await connection.SendRealtimeAsync(liveRequest.RealtimePart, sendCts.Token);
+                    else if (liveRequest.Content != null)
+                        await connection.SendContentAsync(liveRequest.Content, sendCts.Token);
+                }
+            }, sendCts.Token);
 
-                if (liveRequest.RealtimePart != null)
-                    await connection.SendRealtimeAsync(liveRequest.RealtimePart, cancellationToken);
-                else if (liveRequest.Content != null)
-                    await connection.SendContentAsync(liveRequest.Content, cancellationToken);
-            }
-        }, cancellationToken);
-
-        await foreach (var llmResponse in connection.ReceiveAsync(cancellationToken))
-        {
-            await foreach (var evt in PostprocessAsync(
-                invocationContext, llmRequest, llmResponse, modelResponseEvent, cancellationToken))
+            bool reconnect = false;
+            var enumerator = connection.ReceiveAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
+            try
             {
-                if (evt.Content?.Parts != null && evt.Content.Parts.Any(p => p.FunctionResponse != null))
-                    await invocationContext.LiveRequestQueue!.SendContentAsync(evt.Content, cancellationToken);
+                while (true)
+                {
+                    LlmResponse llmResponse;
+                    try
+                    {
+                        if (!await enumerator.MoveNextAsync())
+                            break;
+                        llmResponse = enumerator.Current;
+                    }
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested && attempt < maxReconnectAttempts)
+                    {
+                        System.Diagnostics.Trace.TraceWarning(
+                            $"LlmAgent: live connection dropped, reconnecting (attempt {attempt + 1}/{maxReconnectAttempts}): {ex.Message}");
+                        reconnect = true;
+                        break;
+                    }
 
-                yield return evt;
+                    await foreach (var evt in PostprocessAsync(
+                        invocationContext, llmRequest, llmResponse, modelResponseEvent, cancellationToken))
+                    {
+                        if (evt.Content?.Parts != null && evt.Content.Parts.Any(p => p.FunctionResponse != null))
+                            await invocationContext.LiveRequestQueue!.SendContentAsync(evt.Content, cancellationToken);
+
+                        yield return evt;
+
+                        // Regenerate the event id after each non-partial event so that
+                        // distinct live events do not share the same id.
+                        if (evt.Partial != true)
+                        {
+                            modelResponseEvent = Event.Create(e =>
+                            {
+                                e.InvocationId = invocationContext.InvocationId;
+                                e.Author = Name;
+                                e.Branch = invocationContext.Branch;
+                            });
+                        }
+                    }
+                }
             }
+            finally
+            {
+                await enumerator.DisposeAsync();
+                sendCts.Cancel();
+                try { await sendTask; } catch { /* send loop cancellation */ }
+            }
+
+            if (!reconnect)
+                break;
         }
 
         invocationContext.LiveRequestQueue!.Close();
-        await sendTask;
     }
 
     private async IAsyncEnumerable<Event> RunOneStepAsync(
@@ -490,7 +573,9 @@ public class LlmAgent : BaseAgent
             }
             else if (toolUnion is BaseToolset toolset)
             {
-                var readonlyCtx = new ReadonlyContext(invocationContext);
+                // Let the toolset mutate the request at the set level (e.g. MCP)
+                // before individual tools run their preprocessors.
+                await toolset.ProcessLlmRequestAsync(toolContext, llmRequest);
                 var resolvedTools = await toolset.GetToolsAsync(toolContext);
                 foreach (var tool in resolvedTools)
                     await tool.ProcessLlmRequestAsync(toolContext, llmRequest);
@@ -549,8 +634,19 @@ public class LlmAgent : BaseAgent
                 yield return evt;
         }
 
-        // Skip if no content
-        if (llmResponse.Content == null && llmResponse.ErrorCode == null && llmResponse.Interrupted != true)
+        // Skip if there is nothing actionable in the response. In live mode we still
+        // emit control-only responses (turn_complete / transcription), matching
+        // adk-python's _postprocess_live, so those are not dropped here.
+        var isLive = invocationContext.LiveRequestQueue != null;
+        var hasLiveControlSignal = isLive &&
+            (llmResponse.TurnComplete == true ||
+             llmResponse.InputTranscription != null ||
+             llmResponse.OutputTranscription != null);
+        if (llmResponse.Content == null
+            && llmResponse.ErrorCode == null
+            && llmResponse.Interrupted != true
+            && llmResponse.GroundingMetadata == null
+            && !hasLiveControlSignal)
             yield break;
 
         // Build merged event
@@ -570,6 +666,9 @@ public class LlmAgent : BaseAgent
             e.ErrorMessage = llmResponse.ErrorMessage;
             e.Partial = llmResponse.Partial;
             e.Interrupted = llmResponse.Interrupted;
+            e.TurnComplete = llmResponse.TurnComplete;
+            e.InputTranscription = llmResponse.InputTranscription;
+            e.OutputTranscription = llmResponse.OutputTranscription;
             e.CustomMetadata = llmResponse.CustomMetadata;
             e.CacheMetadata = llmResponse.CacheMetadata;
         });
@@ -616,7 +715,12 @@ public class LlmAgent : BaseAgent
         // Auth event
         var authEvent = FunctionCallHandler.GenerateAuthEvent(invocationContext, functionResponseEvent);
         if (authEvent != null)
+        {
             yield return authEvent;
+            // Interrupt the invocation so the client can perform the auth flow and
+            // resume. Without this the run loop would issue another LLM call.
+            invocationContext.EndInvocation = true;
+        }
 
         // Tool confirmation event
         var confirmEvent = FunctionCallHandler.GenerateRequestConfirmationEvent(
@@ -658,8 +762,29 @@ public class LlmAgent : BaseAgent
             var nextAgent = rootAgent.FindAgent(nextAgentName)
                 ?? throw new InvalidOperationException($"Agent \"{nextAgentName}\" not found in the agent tree.");
 
-            await foreach (var evt in nextAgent.RunAsync(invocationContext, cancellationToken).WithCancellation(cancellationToken))
-                yield return evt;
+            // Disallow transfer to a sibling (peer) agent when configured.
+            if (DisallowTransferToPeers
+                && nextAgent != this
+                && nextAgent.ParentAgent == ParentAgent)
+            {
+                throw new InvalidOperationException(
+                    $"Transfer to sibling agent {nextAgentName} is disallowed.");
+            }
+
+            // In live mode, run the transferred agent in live mode as well so it keeps
+            // the bidirectional connection semantics (mirrors adk-python run_live).
+            if (isLive && invocationContext.LiveRequestQueue != null)
+            {
+                await foreach (var evt in nextAgent
+                    .RunLiveAsync(invocationContext, invocationContext.LiveRequestQueue, cancellationToken)
+                    .WithCancellation(cancellationToken))
+                    yield return evt;
+            }
+            else
+            {
+                await foreach (var evt in nextAgent.RunAsync(invocationContext, cancellationToken).WithCancellation(cancellationToken))
+                    yield return evt;
+            }
         }
     }
 
@@ -795,12 +920,107 @@ public class LlmAgent : BaseAgent
         return null;
     }
 
+    private static BeforeModelCallback? ComposeBeforeModel(List<BeforeModelCallback>? list, BeforeModelCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (ctx, req) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(ctx, req);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(ctx, req) : null;
+        };
+    }
+
+    private static AfterModelCallback? ComposeAfterModel(List<AfterModelCallback>? list, AfterModelCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (ctx, resp) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(ctx, resp);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(ctx, resp) : null;
+        };
+    }
+
+    private static OnModelErrorCallback? ComposeOnModelError(List<OnModelErrorCallback>? list, OnModelErrorCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (ctx, req, err) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(ctx, req, err);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(ctx, req, err) : null;
+        };
+    }
+
+    private static BeforeToolCallback? ComposeBeforeTool(List<BeforeToolCallback>? list, BeforeToolCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (tool, args, ctx) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(tool, args, ctx);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(tool, args, ctx) : null;
+        };
+    }
+
+    private static OnToolErrorCallback? ComposeOnToolError(List<OnToolErrorCallback>? list, OnToolErrorCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (tool, args, ctx, err) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(tool, args, ctx, err);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(tool, args, ctx, err) : null;
+        };
+    }
+
+    private static AfterToolCallback? ComposeAfterTool(List<AfterToolCallback>? list, AfterToolCallback? single)
+    {
+        if ((list == null || list.Count == 0) && single == null) return null;
+        return async (tool, args, ctx, resp) =>
+        {
+            if (list != null)
+                foreach (var cb in list)
+                {
+                    var r = await cb(tool, args, ctx, resp);
+                    if (r != null) return r;
+                }
+            return single != null ? await single(tool, args, ctx, resp) : null;
+        };
+    }
+
     private void MaybeSaveOutputToState(Event evt)
     {
         if (evt.Author != Name) return;
         if (string.IsNullOrEmpty(OutputKey)) return;
         if (!evt.IsFinalResponse()) return;
         if (evt.Content?.Parts == null || evt.Content.Parts.Count == 0) return;
+
+        // Require at least one non-thought text part. Final events that only carry
+        // function responses / thoughts (e.g. skip-summarization tool-only turns)
+        // must not overwrite the output key with an empty string.
+        if (!evt.Content.Parts.Any(p => p.Thought != true && p.Text != null)) return;
 
         var resultStr = evt.StringifyContent();
         object result = resultStr;

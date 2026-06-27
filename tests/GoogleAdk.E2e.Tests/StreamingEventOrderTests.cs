@@ -474,13 +474,13 @@ public class StreamingEventOrderTests
 
     // --- Real Gemini LLM tests (integration) ---
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_SimpleText_FinalResponseYielded()
     {
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "test-agent",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Reply with exactly one short sentence.",
         });
         var (runner, sessionId) = await SetupAsync(agent, "real-llm-test");
@@ -492,13 +492,13 @@ public class StreamingEventOrderTests
         Assert.False(string.IsNullOrWhiteSpace(finalEvents[0].Content?.Parts?.First().Text));
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_Sse_StreamsPartialChunks()
     {
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "test-agent",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Write exactly two sentences.",
         });
         var (runner, sessionId) = await SetupAsync(agent, "real-sse-test");
@@ -519,13 +519,13 @@ public class StreamingEventOrderTests
         }
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_WithWeatherTool_CallsToolAndRespondsFinal()
     {
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "weather-agent",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "You are a weather assistant. Always use get_weather to answer weather questions.",
             Tools = [StreamingTestTools.GetWeatherTool],
         });
@@ -550,7 +550,7 @@ public class StreamingEventOrderTests
         Assert.True(firstFrIdx < finalIdx, "FR must precede final text");
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_Sse_WithTool_PartialFcExecutesToolExactlyOnce_BugFix()
     {
         // In SSE mode the model may stream a FC as partial chunks before the final non-partial FC.
@@ -576,7 +576,7 @@ public class StreamingEventOrderTests
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "weather-agent",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Use get_weather to answer weather questions.",
             Tools = [countingWeatherTool],
         });
@@ -591,13 +591,13 @@ public class StreamingEventOrderTests
         Assert.Contains(events, e => e.IsFinalResponse());
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_WithAddTool_ComputesCorrectAnswer()
     {
         var agent = new LlmAgent(new LlmAgentConfig
         {
             Name = "math-agent",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "You are a math assistant. Use the add tool for arithmetic and report the result.",
             Tools = [StreamingTestTools.AddTool],
         });
@@ -611,21 +611,21 @@ public class StreamingEventOrderTests
         Assert.Contains("42", finalText);
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_SubAgent_TransfersAndResponds()
     {
         var specialistAgent = new LlmAgent(new LlmAgentConfig
         {
             Name = "weather_specialist",
             Description = "Specializes in weather information",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "You are a weather specialist. Always use get_weather to answer.",
             Tools = [StreamingTestTools.GetWeatherTool],
         });
         var routerAgent = new LlmAgent(new LlmAgentConfig
         {
             Name = "router",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Route weather questions to the weather_specialist sub-agent.",
             SubAgents = [specialistAgent],
         });
@@ -647,7 +647,7 @@ public class StreamingEventOrderTests
         }
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_Sse_SequentialAgent_AllSubAgentsExecute()
     {
         // Real Gemini test: SequentialAgent with 2 LlmAgent sub-agents in SSE mode.
@@ -655,14 +655,14 @@ public class StreamingEventOrderTests
         var agent1 = new LlmAgent(new LlmAgentConfig
         {
             Name = "greeter",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Reply with a single greeting sentence.",
             OutputKey = "greeting",
         });
         var agent2 = new LlmAgent(new LlmAgentConfig
         {
             Name = "translator",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Translate the following greeting to French: {greeting?}",
         });
         var seq = new SequentialAgent(new BaseAgentConfig
@@ -682,7 +682,7 @@ public class StreamingEventOrderTests
         Assert.True(translatorEvents.Any(e => e.IsFinalResponse()), "translator should have final response");
     }
 
-    [Fact]
+    [RealLlmFact]
     public async Task RealLlm_Sse_SequentialAgent_WithTool_AllAgentsExecute()
     {
         // Real Gemini test mirroring the Combined sample pattern:
@@ -690,7 +690,7 @@ public class StreamingEventOrderTests
         var weatherAgent = new LlmAgent(new LlmAgentConfig
         {
             Name = "weather_fetcher",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Use the get_weather tool to get weather for the requested city, then report the result.",
             Tools = [StreamingTestTools.GetWeatherTool],
             OutputKey = "weather_data",
@@ -698,7 +698,7 @@ public class StreamingEventOrderTests
         var summaryAgent = new LlmAgent(new LlmAgentConfig
         {
             Name = "summarizer",
-            Model = "gemini-2.0-flash",
+            Model = "gemini-2.5-flash",
             Instruction = "Summarize in one sentence: {weather_data?}",
         });
         var seq = new SequentialAgent(new BaseAgentConfig

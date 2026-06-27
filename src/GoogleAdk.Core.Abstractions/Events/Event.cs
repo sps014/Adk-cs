@@ -47,9 +47,6 @@ public class Event : LlmResponse
     /// </summary>
     public long Timestamp { get; set; }
 
-    private static readonly Random _random = new();
-    private const string AlphanumericChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
     /// <summary>
     /// Creates a new Event with default values and an auto-generated ID.
     /// </summary>
@@ -144,16 +141,12 @@ public class Event : LlmResponse
     }
 
     /// <summary>
-    /// Generates a random 8-character alphanumeric event ID.
+    /// Generates a globally unique event ID.
+    /// Uses a full UUID to match adk-python semantics and to avoid collisions
+    /// (and to keep IDs stable when sessions are shared cross-language).
     /// </summary>
     public static string GenerateEventId()
     {
-        var chars = new char[8];
-        lock (_random)
-        {
-            for (int i = 0; i < 8; i++)
-                chars[i] = AlphanumericChars[_random.Next(AlphanumericChars.Length)];
-        }
-        return new string(chars);
+        return Guid.NewGuid().ToString();
     }
 }

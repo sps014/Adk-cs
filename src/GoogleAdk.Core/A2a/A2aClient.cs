@@ -66,7 +66,8 @@ public sealed class JsonRpcResponse
     public string? Id { get; set; }
 
     [JsonPropertyName("result")]
-    public JsonElement Result { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JsonElement? Result { get; set; }
 
     [JsonPropertyName("error")]
     public JsonRpcError? Error { get; set; }
@@ -104,11 +105,28 @@ public sealed class A2aClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    /// <summary>
+    /// Optional interceptor invoked for every outgoing HTTP request, allowing
+    /// callers to attach auth headers or other request-scoped state. Mirrors
+    /// adk-python's client request interceptors.
+    /// </summary>
+    public Func<HttpRequestMessage, CancellationToken, Task>? RequestInterceptor { get; set; }
+
     public A2aClient(string baseUrl, string transport, HttpClient? httpClient = null)
     {
         _baseUrl = baseUrl.TrimEnd('/');
         _transport = transport;
         _http = httpClient ?? new HttpClient();
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        HttpCompletionOption completionOption,
+        CancellationToken cancellationToken)
+    {
+        if (RequestInterceptor != null)
+            await RequestInterceptor(request, cancellationToken);
+        return await _http.SendAsync(request, completionOption, cancellationToken);
     }
 
     public async Task<IA2aEvent> SendMessageAsync(MessageSendParams parameters, CancellationToken cancellationToken = default)
@@ -123,7 +141,8 @@ public sealed class A2aClient
             var response = await PostJsonAsync(_baseUrl, req, cancellationToken);
             var rpc = await ReadJsonAsync<JsonRpcResponse>(response, cancellationToken);
             if (rpc.Error != null) throw new InvalidOperationException(rpc.Error.Message);
-            return ParseA2aEvent(rpc.Result);
+            if (rpc.Result == null) throw new InvalidOperationException("JSON-RPC response missing result.");
+            return ParseA2aEvent(rpc.Result.Value);
         }
 
         var restUrl = $"{_baseUrl}/message:send";
@@ -150,7 +169,7 @@ public sealed class A2aClient
                 Content = new StringContent(JsonSerializer.Serialize(req, _jsonOptions), Encoding.UTF8, "application/json"),
             };
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
             await foreach (var evt in ReadSseAsync(response, isJsonRpc: true, cancellationToken))
                 yield return evt;
@@ -163,7 +182,7 @@ public sealed class A2aClient
             Content = new StringContent(JsonSerializer.Serialize(parameters, _jsonOptions), Encoding.UTF8, "application/json"),
         };
         restRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        using var restResponse = await _http.SendAsync(restRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var restResponse = await SendAsync(restRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         restResponse.EnsureSuccessStatusCode();
         await foreach (var evt in ReadSseAsync(restResponse, isJsonRpc: false, cancellationToken))
             yield return evt;
@@ -172,7 +191,11 @@ public sealed class A2aClient
     private async Task<HttpResponseMessage> PostJsonAsync(string url, object body, CancellationToken cancellationToken)
     {
         var json = JsonSerializer.Serialize(body, _jsonOptions);
-        var response = await _http.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+        var response = await SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
         response.EnsureSuccessStatusCode();
         return response;
     }
@@ -203,8 +226,8 @@ public sealed class A2aClient
             {
                 var rpc = JsonSerializer.Deserialize<JsonRpcResponse>(payload, _jsonOptions);
                 if (rpc?.Error != null) throw new InvalidOperationException(rpc.Error.Message);
-                if (rpc == null) continue;
-                yield return ParseA2aEvent(rpc.Result);
+                if (rpc?.Result == null) continue;
+                yield return ParseA2aEvent(rpc.Result.Value);
             }
             else
             {

@@ -63,7 +63,7 @@ public sealed class RemoteA2aAgent : BaseAgent
 
         var events = context.Session.Events;
         if (events.Count == 0)
-            throw new InvalidOperationException("No events in session to send.");
+            yield break;
 
         var userFnCall = A2aRemoteAgentUtils.GetUserFunctionCallAt(context.Session, events.Count - 1);
         List<A2aPart> parts;

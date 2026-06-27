@@ -1,6 +1,23 @@
+using GoogleAdk.Core.Abstractions.Auth;
+using GoogleAdk.Core.Abstractions.Models;
 using GoogleAdk.Core.Abstractions.Tools;
 
 namespace GoogleAdk.Core.Abstractions.Events;
+
+/// <summary>
+/// The compaction of a range of events into a single condensed content.
+/// </summary>
+public class EventCompaction
+{
+    /// <summary>The start timestamp of the compacted events (Unix milliseconds).</summary>
+    public long StartTimestamp { get; set; }
+
+    /// <summary>The end timestamp of the compacted events (Unix milliseconds).</summary>
+    public long EndTimestamp { get; set; }
+
+    /// <summary>The compacted content of the events.</summary>
+    public Content? CompactedContent { get; set; }
+}
 
 /// <summary>
 /// Represents the actions attached to an event.
@@ -37,7 +54,7 @@ public class EventActions
     /// Authentication configurations requested by tool responses.
     /// Keys: The function call id. Values: The requested auth config.
     /// </summary>
-    public Dictionary<string, object?> RequestedAuthConfigs { get; set; } = new();
+    public Dictionary<string, AuthConfig> RequestedAuthConfigs { get; set; } = new();
 
     /// <summary>
     /// A dict of tool confirmation requested by this event, keyed by the function call id.
@@ -48,6 +65,39 @@ public class EventActions
     /// Custom metadata for the event actions.
     /// </summary>
     public Dictionary<string, object?>? CustomMetadata { get; set; }
+
+    /// <summary>
+    /// The compaction of the events, if this event represents a compaction.
+    /// </summary>
+    public EventCompaction? Compaction { get; set; }
+
+    /// <summary>
+    /// If true, the current agent has finished its current run. Note that there
+    /// can be multiple events with EndOfAgent=true for the same agent within one
+    /// invocation when there is a loop. This should only be set by the workflow.
+    /// </summary>
+    public bool? EndOfAgent { get; set; }
+
+    /// <summary>
+    /// The agent state at the current event, used for checkpoint and resume.
+    /// This should only be set by the workflow.
+    /// </summary>
+    public Dictionary<string, object?>? AgentState { get; set; }
+
+    /// <summary>
+    /// The invocation id to rewind to. Only set for rewind events.
+    /// </summary>
+    public string? RewindBeforeInvocationId { get; set; }
+
+    /// <summary>
+    /// Route or list of routes for workflow graph edge matching.
+    /// </summary>
+    public object? Route { get; set; }
+
+    /// <summary>
+    /// The model response structured output.
+    /// </summary>
+    public object? SetModelResponse { get; set; }
 
     /// <summary>
     /// UI widgets requested for rendering.
@@ -111,6 +161,18 @@ public class EventActions
             target.TransferToAgent = source.TransferToAgent;
         if (source.Escalate.HasValue)
             target.Escalate = source.Escalate;
+        if (source.Compaction != null)
+            target.Compaction = source.Compaction;
+        if (source.EndOfAgent.HasValue)
+            target.EndOfAgent = source.EndOfAgent;
+        if (source.AgentState != null)
+            target.AgentState = source.AgentState;
+        if (source.RewindBeforeInvocationId != null)
+            target.RewindBeforeInvocationId = source.RewindBeforeInvocationId;
+        if (source.Route != null)
+            target.Route = source.Route;
+        if (source.SetModelResponse != null)
+            target.SetModelResponse = source.SetModelResponse;
     }
 
     private static void MergeDictionaries(EventActions source, EventActions target)

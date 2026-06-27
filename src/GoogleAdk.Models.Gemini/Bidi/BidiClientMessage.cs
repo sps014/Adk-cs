@@ -52,7 +52,16 @@ public class BidiClientContent
 public class BidiRealtimeInput
 {
     [JsonPropertyName("mediaChunks")]
-    public BidiMediaChunk[] MediaChunks { get; set; } = Array.Empty<BidiMediaChunk>();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BidiMediaChunk[]? MediaChunks { get; set; }
+
+    [JsonPropertyName("activityStart")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? ActivityStart { get; set; }
+
+    [JsonPropertyName("activityEnd")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? ActivityEnd { get; set; }
 }
 
 public class BidiMediaChunk

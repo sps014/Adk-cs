@@ -8,7 +8,11 @@ namespace GoogleAdk.Core.A2a;
 
 public static class AgentCardConstants
 {
+    /// <summary>The A2A v2 well-known agent card path.</summary>
     public const string AgentCardPath = ".well-known/agent-card.json";
+
+    /// <summary>The legacy (A2A v1) well-known agent card path, for interop.</summary>
+    public const string LegacyAgentCardPath = ".well-known/agent.json";
 }
 
 public sealed class AgentCard
@@ -45,6 +49,27 @@ public sealed class AgentCard
 
     [JsonPropertyName("additionalInterfaces")]
     public List<AgentInterface> AdditionalInterfaces { get; set; } = new();
+
+    [JsonPropertyName("provider")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AgentProvider? Provider { get; set; }
+
+    [JsonPropertyName("documentationUrl")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DocumentationUrl { get; set; }
+
+    [JsonPropertyName("securitySchemes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, object?>? SecuritySchemes { get; set; }
+}
+
+public sealed class AgentProvider
+{
+    [JsonPropertyName("organization")]
+    public string Organization { get; set; } = string.Empty;
+
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
 }
 
 public sealed class AgentCapabilities
@@ -84,6 +109,18 @@ public sealed class AgentSkill
 
     [JsonPropertyName("tags")]
     public List<string> Tags { get; set; } = new();
+
+    [JsonPropertyName("examples")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Examples { get; set; }
+
+    [JsonPropertyName("inputModes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? InputModes { get; set; }
+
+    [JsonPropertyName("outputModes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? OutputModes { get; set; }
 }
 
 public static class AgentCardBuilder
@@ -94,8 +131,38 @@ public static class AgentCardBuilder
             source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             client ??= new HttpClient();
-            var json = await client.GetStringAsync(source);
-            return JsonSerializer.Deserialize<AgentCard>(json) ?? throw new InvalidOperationException("Invalid AgentCard JSON.");
+
+            // Direct URL to a card JSON document.
+            if (source.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                var json = await client.GetStringAsync(source);
+                return JsonSerializer.Deserialize<AgentCard>(json)
+                    ?? throw new InvalidOperationException("Invalid AgentCard JSON.");
+            }
+
+            // Base URL: probe the A2A v2 well-known path, then fall back to the
+            // legacy v1 path (`/.well-known/agent.json`) for interop.
+            var baseUrl = source.TrimEnd('/');
+            foreach (var path in new[] { AgentCardConstants.AgentCardPath, AgentCardConstants.LegacyAgentCardPath })
+            {
+                try
+                {
+                    var response = await client.GetAsync($"{baseUrl}/{path}");
+                    if (!response.IsSuccessStatusCode)
+                        continue;
+                    var json = await response.Content.ReadAsStringAsync();
+                    var card = JsonSerializer.Deserialize<AgentCard>(json);
+                    if (card != null)
+                        return card;
+                }
+                catch (HttpRequestException)
+                {
+                    // Try the next candidate path.
+                }
+            }
+
+            throw new InvalidOperationException(
+                $"Could not resolve an agent card from base URL '{source}' (tried agent-card.json and agent.json).");
         }
 
         var content = await File.ReadAllTextAsync(source);
@@ -166,16 +233,46 @@ public static class AgentCardBuilder
 
     private static async Task<List<AgentSkill>> BuildLlmAgentSkillsAsync(LlmAgent agent)
     {
-        var skills = new List<AgentSkill>
+        var modelSkill = new AgentSkill
         {
-            new()
-            {
-                Id = agent.Name,
-                Name = "model",
-                Description = await BuildDescriptionFromInstructionsAsync(agent),
-                Tags = new List<string> { "llm" },
-            },
+            Id = agent.Name,
+            Name = "model",
+            Description = await BuildDescriptionFromInstructionsAsync(agent),
+            Tags = new List<string> { "llm" },
         };
+
+        // Surface few-shot examples (input text) on the primary model skill.
+        var examples = agent.Examples
+            .Select(e => e.Input.Parts?.FirstOrDefault(p => p.Text != null)?.Text)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t!)
+            .ToList();
+        if (examples.Count > 0)
+            modelSkill.Examples = examples;
+
+        var skills = new List<AgentSkill> { modelSkill };
+
+        // Planner / code-executor skills.
+        if (agent.Planner != null)
+        {
+            skills.Add(new AgentSkill
+            {
+                Id = $"{agent.Name}-planning",
+                Name = "planning",
+                Description = "Plans and reasons before acting.",
+                Tags = new List<string> { "llm", "planning" },
+            });
+        }
+        if (agent.CodeExecutor != null)
+        {
+            skills.Add(new AgentSkill
+            {
+                Id = $"{agent.Name}-code-execution",
+                Name = "code-execution",
+                Description = "Executes code to compute results.",
+                Tags = new List<string> { "llm", "code-execution" },
+            });
+        }
 
         var tools = await agent.CanonicalToolsAsync();
         foreach (var tool in tools)

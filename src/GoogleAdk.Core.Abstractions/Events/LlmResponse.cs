@@ -24,7 +24,10 @@ public class LlmResponse
     public bool? Partial { get; set; }
 
     /// <summary>
-    /// Indicates whether the response from the model is complete. Only used for streaming mode.
+    /// Indicates whether the model has completed the turn. Only set for the live/bidi
+    /// (streaming connection) flow, which relies on this flag to detect turn boundaries.
+    /// The SSE (run_sse) flow leaves this null and relies on <c>FinishReason</c> instead,
+    /// matching adk-python.
     /// </summary>
     public bool? TurnComplete { get; set; }
 

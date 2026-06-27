@@ -124,7 +124,13 @@ public static class StructuredEventConverter
                 else if (part.CodeExecutionResult != null)
                     result.Add(new CodeResultEvent(part.CodeExecutionResult));
                 else if (part.Text != null)
-                    result.Add(new ContentEvent(part.Text));
+                {
+                    // Reasoning/thought text must not surface as user-visible content.
+                    if (part.Thought == true)
+                        result.Add(new ThoughtEvent(part.Text));
+                    else
+                        result.Add(new ContentEvent(part.Text));
+                }
             }
         }
 

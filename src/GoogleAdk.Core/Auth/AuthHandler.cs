@@ -26,6 +26,17 @@ public class AuthHandler
     }
 
     /// <summary>
+    /// Stores the (client-completed) exchanged auth credential into session state
+    /// under the temporary credential key, so authenticated tools can retrieve it
+    /// via <see cref="GetAuthResponse"/> when their function call is resumed.
+    /// </summary>
+    public void ParseAndStoreAuthResponse(State state)
+    {
+        var credentialKey = "temp:" + _authConfig.CredentialKey;
+        state.Set(credentialKey, _authConfig.ExchangedAuthCredential);
+    }
+
+    /// <summary>
     /// Generates the auth request. For OAuth2/OIDC, generates the auth URI if needed.
     /// </summary>
     public AuthConfig GenerateAuthRequest()

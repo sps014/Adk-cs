@@ -72,6 +72,15 @@ public abstract class BaseLlmConnection : IAsyncDisposable
     public abstract Task SendRealtimeAsync(Part part, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Signals the start or end of user activity (manual VAD) to the LLM.
+    /// <paramref name="activityStart"/> is <c>true</c> for activity start and
+    /// <c>false</c> for activity end. Default implementation is a no-op for
+    /// connections that do not support manual activity signaling.
+    /// </summary>
+    public virtual Task SendActivityAsync(bool activityStart, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    /// <summary>
     /// Receives responses from the LLM.
     /// </summary>
     public abstract IAsyncEnumerable<LlmResponse> ReceiveAsync(CancellationToken cancellationToken = default);

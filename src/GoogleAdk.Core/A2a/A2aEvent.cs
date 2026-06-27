@@ -23,6 +23,7 @@ public static class TaskState
     public const string Canceled = "canceled";
     public const string Rejected = "rejected";
     public const string InputRequired = "input-required";
+    public const string AuthRequired = "auth-required";
 }
 
 public interface IA2aEvent
@@ -226,6 +227,17 @@ public static class A2aEventHelpers
             _ => null,
         };
         return state == TaskState.InputRequired;
+    }
+
+    public static bool IsAuthRequiredTaskStatusUpdateEvent(object? evt)
+    {
+        var state = evt switch
+        {
+            TaskStatusUpdateEvent tsu => tsu.Status.State,
+            A2aTask task => task.Status.State,
+            _ => null,
+        };
+        return state == TaskState.AuthRequired;
     }
 
     public static string? GetFailedTaskStatusUpdateEventError(TaskStatusUpdateEvent evt)

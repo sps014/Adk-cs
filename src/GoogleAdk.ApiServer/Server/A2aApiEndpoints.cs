@@ -14,19 +14,26 @@ public static class A2aApiEndpoints
 {
     public static WebApplication MapA2aApi(this WebApplication app)
     {
-        app.MapGet("/a2a/{appName}/" + AgentCardConstants.AgentCardPath,
-            async (HttpContext http, string appName, AgentLoader loader) =>
+        async Task<IResult> GetAgentCardAsync(HttpContext http, string appName, AgentLoader loader)
+        {
+            var agent = loader.GetAgent(appName);
+            var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}/a2a/{appName}";
+            var transports = new[]
             {
-                var agent = loader.GetAgent(appName);
-                var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}/a2a/{appName}";
-                var transports = new[]
-                {
-                    new AgentInterface { Url = $"{baseUrl}/jsonrpc", Transport = "JSONRPC" },
-                    new AgentInterface { Url = $"{baseUrl}/rest", Transport = "HTTP+JSON" },
-                };
-                var card = await AgentCardBuilder.GetA2AAgentCardAsync(agent, transports);
-                return Results.Json(card, AdkJsonOptions.Default);
-            })
+                new AgentInterface { Url = $"{baseUrl}/jsonrpc", Transport = "JSONRPC" },
+                new AgentInterface { Url = $"{baseUrl}/rest", Transport = "HTTP+JSON" },
+            };
+            var card = await AgentCardBuilder.GetA2AAgentCardAsync(agent, transports);
+            return Results.Json(card, AdkJsonOptions.Default);
+        }
+
+        // A2A v2 well-known path.
+        app.MapGet("/a2a/{appName}/" + AgentCardConstants.AgentCardPath, GetAgentCardAsync)
+            .Produces<AgentCard>()
+            .WithTags("A2A");
+
+        // Legacy (A2A v1) well-known path, served for interop with older clients.
+        app.MapGet("/a2a/{appName}/" + AgentCardConstants.LegacyAgentCardPath, GetAgentCardAsync)
             .Produces<AgentCard>()
             .WithTags("A2A");
 
@@ -37,6 +44,16 @@ public static class A2aApiEndpoints
             AgentLoader loader,
             RunnerManager manager) =>
         {
+            if (request.Method != "message/stream" && request.Method != "message/send")
+            {
+                return Results.Json(new JsonRpcResponse
+                {
+                    JsonRpc = "2.0",
+                    Id = request.Id,
+                    Error = new JsonRpcError { Code = -32601, Message = $"Method not found: {request.Method}" },
+                }, AdkJsonOptions.Default);
+            }
+
             if (request.Method == "message/stream")
             {
                 http.Response.ContentType = "text/event-stream";

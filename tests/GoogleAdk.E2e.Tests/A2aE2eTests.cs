@@ -79,6 +79,101 @@ public class A2aE2eTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task A2aClient_CanStream_OverJsonRpc()
+    {
+        const string appName = "a2a-e2e-jsonrpc";
+
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        var loader = new AgentLoader(Path.GetTempPath());
+        loader.Register(appName, new SimpleTestAgent());
+        builder.Services.AddSingleton(loader);
+        builder.Services.AddSingleton<BaseSessionService, InMemorySessionService>();
+        builder.Services.AddSingleton<RunnerManager>();
+
+        await using var app = builder.Build();
+        app.MapA2aApi();
+        await app.StartAsync();
+        var client = app.GetTestClient();
+
+        var baseUrl = new Uri(client.BaseAddress!, $"a2a/{appName}/jsonrpc").ToString();
+        var a2aClient = new A2aClient(baseUrl, "JSONRPC", client);
+
+        var parameters = new MessageSendParams
+        {
+            Message = new Message
+            {
+                Role = "user",
+                Parts = [new A2aPart { Kind = "text", Text = "Hello JSONRPC" }],
+            },
+        };
+
+        var events = new List<IA2aEvent>();
+        await foreach (var evt in a2aClient.SendMessageStreamAsync(parameters))
+            events.Add(evt);
+
+        Assert.NotEmpty(events);
+        Assert.Contains(events, e => e is TaskStatusUpdateEvent { Final: true });
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task A2aExecutor_EmitsFailedEvent_WhenAgentThrows()
+    {
+        const string appName = "a2a-e2e-error";
+
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        var loader = new AgentLoader(Path.GetTempPath());
+        loader.Register(appName, new ThrowingTestAgent());
+        builder.Services.AddSingleton(loader);
+        builder.Services.AddSingleton<BaseSessionService, InMemorySessionService>();
+        builder.Services.AddSingleton<RunnerManager>();
+
+        await using var app = builder.Build();
+        app.MapA2aApi();
+        await app.StartAsync();
+        var client = app.GetTestClient();
+
+        var baseUrl = new Uri(client.BaseAddress!, $"a2a/{appName}/jsonrpc").ToString();
+        var a2aClient = new A2aClient(baseUrl, "JSONRPC", client);
+
+        var parameters = new MessageSendParams
+        {
+            Message = new Message
+            {
+                Role = "user",
+                Parts = [new A2aPart { Kind = "text", Text = "boom" }],
+            },
+        };
+
+        var events = new List<IA2aEvent>();
+        await foreach (var evt in a2aClient.SendMessageStreamAsync(parameters))
+            events.Add(evt);
+
+        Assert.Contains(events, e => e is TaskStatusUpdateEvent { Status.State: TaskState.Failed });
+        await app.StopAsync();
+    }
+
+    private sealed class ThrowingTestAgent : BaseAgent
+    {
+        public ThrowingTestAgent() : base(new BaseAgentConfig { Name = "ThrowingTestAgent" })
+        {
+        }
+
+        protected override async IAsyncEnumerable<Event> RunAsyncImpl(
+            InvocationContext context,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Intentional failure for E2E test.");
+#pragma warning disable CS0162
+            yield break;
+#pragma warning restore CS0162
+        }
+    }
+
     private sealed class SimpleTestAgent : BaseAgent
     {
         public SimpleTestAgent() : base(new BaseAgentConfig { Name = "SimpleTestAgent" })

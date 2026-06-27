@@ -59,8 +59,12 @@ public class ContentRequestProcessor : BaseLlmRequestProcessor
             if (evt.Content.Parts.Count == 1 && evt.Content.Parts[0].Text == "")
                 continue;
 
-            // Skip events not in the current branch
-            if (currentBranch != null && evt.Branch != null && !currentBranch.StartsWith(evt.Branch))
+            // Skip events not in the current branch.
+            // An event is visible when the current branch equals the event's branch
+            // or is a descendant of it (segment-level comparison, mirroring Python's
+            // _BranchPath). Plain string StartsWith is wrong because "A.SubAgent1"
+            // would incorrectly match "A.SubAgent10".
+            if (currentBranch != null && evt.Branch != null && !IsBranchVisible(currentBranch, evt.Branch))
                 continue;
 
             // Skip auth events
@@ -106,6 +110,28 @@ public class ContentRequestProcessor : BaseLlmRequestProcessor
             }
         }
         return GetContents(events, agentName, currentBranch);
+    }
+
+    /// <summary>
+    /// Returns whether an event with branch <paramref name="eventBranch"/> is visible
+    /// from the <paramref name="currentBranch"/>. Visible when the current branch equals
+    /// the event branch, or is a strict descendant of it. Comparison is segment-based
+    /// (dot-separated), matching adk-python's <c>_BranchPath</c>.
+    /// </summary>
+    private static bool IsBranchVisible(string currentBranch, string eventBranch)
+    {
+        var current = currentBranch.Split('.');
+        var ancestor = eventBranch.Split('.');
+
+        if (ancestor.Length > current.Length)
+            return false;
+
+        for (int i = 0; i < ancestor.Length; i++)
+        {
+            if (current[i] != ancestor[i])
+                return false;
+        }
+        return true;
     }
 
     private static bool IsAuthEvent(Event evt)

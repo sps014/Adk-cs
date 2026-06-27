@@ -50,6 +50,29 @@ public class InvocationContext
     /// <summary>Pending artifact delta to be emitted on the first agent event.</summary>
     public Dictionary<string, int>? PendingArtifactDelta { get; set; }
 
+    /// <summary>
+    /// Whether this invocation is resumable. When true, the run loop may pause on
+    /// long-running tool calls and resume pending function calls without re-calling
+    /// the model. Defaults to false.
+    /// </summary>
+    public bool IsResumable { get; set; }
+
+    /// <summary>
+    /// The most recent live session resumption handle, used to resume a dropped
+    /// bidirectional session.
+    /// </summary>
+    public string? LiveSessionResumptionHandle { get; set; }
+
+    /// <summary>
+    /// Streaming tools currently running for this invocation, keyed by tool name.
+    /// </summary>
+    public Dictionary<string, ActiveStreamingTool> ActiveStreamingTools { get; } = new();
+
+    /// <summary>
+    /// Resolved credentials cached for this invocation, keyed by credential key.
+    /// </summary>
+    public Dictionary<string, object?> CredentialByKey { get; } = new();
+
     private int _llmCallCount;
 
     public InvocationContext() { }
@@ -73,6 +96,8 @@ public class InvocationContext
         LiveRequestQueue = parent.LiveRequestQueue;
         PluginManager = parent.PluginManager;
         PendingArtifactDelta = parent.PendingArtifactDelta;
+        IsResumable = parent.IsResumable;
+        LiveSessionResumptionHandle = parent.LiveSessionResumptionHandle;
     }
 
     public string AppName => Session.AppName;

@@ -282,6 +282,16 @@ public sealed class GeminiLiveConnection : BaseLlmConnection
         }
     }
 
+    public override async Task SendActivityAsync(bool activityStart, CancellationToken cancellationToken = default)
+    {
+        var realtimeInput = activityStart
+            ? new BidiRealtimeInput { ActivityStart = new object() }
+            : new BidiRealtimeInput { ActivityEnd = new object() };
+
+        var msg = new BidiClientMessage { RealtimeInput = realtimeInput };
+        await SendMessageAsync(msg, cancellationToken);
+    }
+
     public override IAsyncEnumerable<LlmResponse> ReceiveAsync(CancellationToken cancellationToken = default)
     {
         return _receiveChannel.Reader.ReadAllAsync(cancellationToken);

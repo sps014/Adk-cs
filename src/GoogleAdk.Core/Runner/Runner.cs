@@ -194,18 +194,21 @@ public class Runner
         // Run the agent
         await foreach (var evt in invocationContext.Agent.RunAsync(invocationContext).WithCancellation(cancellationToken))
         {
-            if (evt.Partial != true)
+            // Plugin: onEvent. Run before persisting so the session history matches
+            // exactly what is streamed to the caller (mirrors adk-python).
+            var modifiedEvent = await PluginManager.RunOnEventCallbackAsync(invocationContext, evt);
+            var outputEvent = modifiedEvent ?? evt;
+
+            if (outputEvent.Partial != true)
             {
                 await SessionService.AppendEventAsync(new AppendEventRequest
                 {
                     Session = session,
-                    Event = evt,
+                    Event = outputEvent,
                 });
             }
 
-            // Plugin: onEvent
-            var modifiedEvent = await PluginManager.RunOnEventCallbackAsync(invocationContext, evt);
-            yield return modifiedEvent ?? evt;
+            yield return outputEvent;
         }
 
         // Plugin: afterRun
